@@ -38,6 +38,14 @@ body {
            calc(110px + env(safe-area-inset-bottom, 0px));
 }
 .ph-hd { margin-bottom: 18px; }
+.ph-row { display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 12px; }
+.streak { display: inline-flex; align-items: center; gap: 5px;
+  background: linear-gradient(135deg, #ffc46b 0%, #ff7a3d 50%, #f5482e 100%);
+  color: #fff; padding: 7px 12px; border-radius: 14px;
+  font-weight: 800; font-size: 15px; letter-spacing: -.2px;
+  box-shadow: 0 6px 16px rgba(245,72,46,.32); }
+.streak b { font-size: 17px; }
 .ph-greet { font-size: 14px; color: var(--muted); margin-bottom: 6px; }
 .ph-stat { font-size: 26px; font-weight: 800; line-height: 1.25;
   letter-spacing: -.4px; }

@@ -85,6 +85,46 @@ export function useProgress(logDate) {
   return { byEvent, reload }
 }
 
+// Count consecutive days (ending today, or yesterday if today not yet started)
+// on which the user marked at least one item done.
+export function useStreak() {
+  const [streak, setStreak] = useState(0)
+  const chanId = useRef(++_chSeq)
+
+  const reload = useCallback(async () => {
+    if (!isConfigured) return
+    const { data } = await supabase
+      .from('progress').select('log_date').eq('done', true)
+    const dates = new Set((data || []).map((r) => r.log_date))
+    const pad = (n) => String(n).padStart(2, '0')
+    const key = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    let d = new Date()
+    if (!dates.has(key(d))) d.setDate(d.getDate() - 1) // grace for today
+    let n = 0
+    while (dates.has(key(d))) { n++; d.setDate(d.getDate() - 1) }
+    setStreak(n)
+  }, [])
+
+  useEffect(() => {
+    reload()
+    if (!isConfigured) return
+    const ch = supabase
+      .channel(`streak-${chanId.current}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'progress' }, reload)
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [reload])
+
+  // Reflect streak as the OS-level app-icon badge (iOS 16.4+, desktop PWAs).
+  useEffect(() => {
+    if (!('setAppBadge' in navigator)) return
+    if (streak > 0) navigator.setAppBadge(streak).catch(() => {})
+    else navigator.clearAppBadge?.().catch(() => {})
+  }, [streak])
+
+  return streak
+}
+
 export async function saveProgress(eventId, logDate, itemKey, patch) {
   if (!isConfigured) return
   return supabase.from('progress').upsert(

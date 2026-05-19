@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useEvents, useClaudeStatus, useProgress } from '../lib/useData.js'
+import { useEvents, useClaudeStatus, useProgress, useStreak } from '../lib/useData.js'
 import { isConfigured } from '../supabaseClient.js'
 import { MACHINES } from '../lib/constants.js'
 import { fmtTime, sameDay, addDays, occursOn, minutesOfDay, ymd } from '../lib/date.js'
@@ -31,6 +31,7 @@ const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 export default function PhoneView() {
   const { events } = useEvents()
   const { statuses } = useClaudeStatus()
+  const streak = useStreak()
   const [selected, setSelected] = useState(new Date())
   const [weekBase, setWeekBase] = useState(new Date())
   const [filter, setFilter] = useState(null) // null | todo | progress | done
@@ -64,8 +65,15 @@ export default function PhoneView() {
 
       <div className="ph-hd">
         <div className="ph-greet">{greeting()}, Ethan!</div>
-        <div className="ph-stat">
-          You have <span>{remaining} task{remaining === 1 ? '' : 's'}</span> {sameDay(selected, new Date()) ? 'today' : 'this day'} 👍
+        <div className="ph-row">
+          <div className="ph-stat">
+            You have <span>{remaining} task{remaining === 1 ? '' : 's'}</span> {sameDay(selected, new Date()) ? 'today' : 'this day'} 👍
+          </div>
+          {streak > 0 && (
+            <div className="streak" title={`${streak}-day streak`}>
+              🔥<b>{streak}</b>
+            </div>
+          )}
         </div>
       </div>
 
