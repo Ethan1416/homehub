@@ -1,0 +1,15 @@
+{
+  "_comment": "Merge into ~/.claude/settings.json. macOS uses .sh; Windows uses the powershell line.",
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "$HOME/homehub/hooks/homehub-hook.sh start" } ] }
+    ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "$HOME/homehub/hooks/homehub-hook.sh stop" } ] }
+    ],
+    "_windows_equivalent": {
+      "UserPromptSubmit": "powershell -NoProfile -File C:\\Users\\Justin\\homehub\\hooks\\homehub-hook.ps1 -Mode start",
+      "Stop": "powershell -NoProfile -File C:\\Users\\Justin\\homehub\\hooks\\homehub-hook.ps1 -Mode stop"
+    }
+  }
+}
