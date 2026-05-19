@@ -34,6 +34,7 @@ export default function PhoneView() {
 
       <div className="ph-head">
         <div className="ph-title">HomeHub</div>
+        <div className="ph-sub">{new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</div>
       </div>
 
       <div className="claudestrip">
