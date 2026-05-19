@@ -87,7 +87,11 @@ export default function EventModal({ event, defaultDate, onClose }) {
             </button>
             <button className={`chip ${f.recurrence === 'daily' ? 'on' : ''}`}
               style={{ color: 'var(--accent)' }} onClick={() => set('recurrence', 'daily')}>
-              ↻ Every day
+              ↻ Daily
+            </button>
+            <button className={`chip ${f.recurrence === 'weekly' ? 'on' : ''}`}
+              style={{ color: 'var(--accent)' }} onClick={() => set('recurrence', 'weekly')}>
+              ↻ Weekly
             </button>
           </div>
         </div>

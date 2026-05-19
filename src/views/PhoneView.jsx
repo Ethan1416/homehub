@@ -91,7 +91,7 @@ export default function PhoneView() {
             <span className="et">{e.all_day ? 'All day' : fmtTime(e.starts_at)}</span>
             <span className="eb">
               <b>{e.title}</b>
-              <p>{e.recurrence === 'daily' ? '↻ Daily · ' : ''}{ownerLabel(e.owner)}{e.notes ? ` · ${e.notes}` : ''}</p>
+              <p>{e.recurrence === 'daily' ? '↻ Daily · ' : e.recurrence === 'weekly' ? '↻ Weekly · ' : ''}{ownerLabel(e.owner)}{e.notes ? ` · ${e.notes}` : ''}</p>
             </span>
           </button>
         ))}
