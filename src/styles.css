@@ -55,8 +55,8 @@ button { font: inherit; cursor: pointer; border: none; }
 .evrow .eb b { font-size: 15px; }
 .evrow .eb p { font-size: 13px; color: var(--muted); margin-top: 2px; }
 .evrow .eb .en { display: block; margin-top: 7px; }
-.evrow .eb .en .n-hdr { display: block; font-size: 12px; font-weight: 700;
-  letter-spacing: .6px; color: var(--accent); margin-bottom: 4px; }
+.evrow .eb .en .n-hdr { display: block; font-size: 13px; color: var(--text);
+  opacity: .85; line-height: 1.5; margin-bottom: 3px; }
 .evrow .eb .en .n-ex { display: block; font-size: 13px; color: var(--text);
   opacity: .85; line-height: 1.5; padding-left: 1.5em; text-indent: -1.5em;
   margin-top: 2px; }
@@ -141,8 +141,8 @@ button { font: inherit; cursor: pointer; border: none; }
 .tv-ev .tt { font-size: 24px; color: var(--muted); min-width: 150px; }
 .tv-ev .tb { font-size: 28px; font-weight: 600; }
 .tv-ev .tb small.notes { margin-top: 8px; }
-.tv-ev .tb small .n-hdr { display: block; font-size: 16px; font-weight: 700;
-  letter-spacing: 1px; color: var(--accent); margin-bottom: 6px; }
+.tv-ev .tb small .n-hdr { display: block; font-size: 18px; line-height: 1.5;
+  color: var(--muted); margin-bottom: 4px; }
 .tv-ev .tb small .n-ex { display: block; font-size: 18px; line-height: 1.5;
   padding-left: 1.6em; text-indent: -1.6em; margin-top: 3px; }
 .tv-ev .tb small .n-line { display: block; font-size: 18px; line-height: 1.5;
