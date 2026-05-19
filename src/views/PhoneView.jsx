@@ -56,34 +56,7 @@ export default function PhoneView() {
         })}
       </div>
 
-      <div className="ph-month">
-        <button className="navbtn" onClick={() => setCursor(addDays(new Date(cursor.getFullYear(), cursor.getMonth(), 1), -1))}>‹</button>
-        <b>{fmtMonthYear(cursor)}</b>
-        <button className="navbtn" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>›</button>
-      </div>
-
-      <div className="grid">
-        {DOW.map((d) => <div className="dow" key={d}>{d}</div>)}
-        {matrix.flat().map((d, i) => {
-          const out = d.getMonth() !== cursor.getMonth()
-          const evs = eventsByDay(d)
-          return (
-            <button key={i}
-              className={`cell ${out ? 'out' : ''} ${sameDay(d, new Date()) ? 'today' : ''} ${sameDay(d, selected) ? 'sel' : ''}`}
-              onClick={() => setSelected(new Date(d))}>
-              <span className="dnum">{d.getDate()}</span>
-              <span className="dots">
-                {evs.slice(0, 4).map((e) => (
-                  <span className="dot" key={e.id}
-                    style={{ background: ownerColor(e.owner) }} />
-                ))}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="agenda">
+      <div className="agenda agenda-top">
         <h3>{fmtDayLong(selected)}</h3>
         {dayEvents.length === 0 && <div className="empty">Nothing scheduled</div>}
         {dayEvents.map((e) => (
@@ -105,6 +78,33 @@ export default function PhoneView() {
             </span>
           </button>
         ))}
+      </div>
+
+      <div className="ph-month">
+        <button className="navbtn" onClick={() => setCursor(addDays(new Date(cursor.getFullYear(), cursor.getMonth(), 1), -1))}>‹</button>
+        <b>{fmtMonthYear(cursor)}</b>
+        <button className="navbtn" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>›</button>
+      </div>
+
+      <div className="grid grid-bottom">
+        {DOW.map((d) => <div className="dow" key={d}>{d}</div>)}
+        {matrix.flat().map((d, i) => {
+          const out = d.getMonth() !== cursor.getMonth()
+          const evs = eventsByDay(d)
+          return (
+            <button key={i}
+              className={`cell ${out ? 'out' : ''} ${sameDay(d, new Date()) ? 'today' : ''} ${sameDay(d, selected) ? 'sel' : ''}`}
+              onClick={() => setSelected(new Date(d))}>
+              <span className="dnum">{d.getDate()}</span>
+              <span className="dots">
+                {evs.slice(0, 4).map((e) => (
+                  <span className="dot" key={e.id}
+                    style={{ background: ownerColor(e.owner) }} />
+                ))}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       <button className="fab" onClick={() => setModal({ new: true })}>+</button>

@@ -46,6 +46,10 @@ button { font: inherit; cursor: pointer; border: none; }
 .dots { display: flex; gap: 3px; flex-wrap: wrap; }
 .dot { width: 6px; height: 6px; border-radius: 50%; }
 .agenda { flex: 1; padding: 16px 18px 90px; }
+.agenda-top { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  padding: 12px 18px 14px; min-height: 40vh; }
+.grid-bottom { padding-bottom: calc(86px + env(safe-area-inset-bottom)); }
+.ph-month { margin-top: auto; }
 .agenda h3 { font-size: 15px; color: var(--muted); margin-bottom: 10px; }
 .evrow { background: var(--panel); border-radius: 12px; padding: 12px 14px;
   margin-bottom: 8px; display: flex; gap: 12px; align-items: flex-start;
