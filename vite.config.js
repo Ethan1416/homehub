@@ -15,8 +15,8 @@ export default defineConfig({
         name: 'HomeHub',
         short_name: 'HomeHub',
         description: 'Shared calendar + Claude status for the household',
-        theme_color: '#0f1117',
-        background_color: '#0f1117',
+        theme_color: '#5b6ef5',
+        background_color: '#f3f4fb',
         display: 'standalone',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
@@ -25,13 +25,27 @@ export default defineConfig({
         ]
       },
       workbox: {
-        // TV view must always load even on flaky dongle wifi
-        navigateFallback: '/index.html',
+        // Always-online realtime app: prefer network so deploys take effect
+        // immediately; cache is only an offline fallback (no stale precache).
+        globPatterns: [],
+        navigateFallback: null,
+        clientsClaim: true,
+        skipWaiting: true,
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.pathname.startsWith('/rest/') || url.host.includes('supabase'),
+            urlPattern: ({ url }) => url.host.includes('supabase'),
             handler: 'NetworkFirst',
             options: { cacheName: 'supabase', networkTimeoutSeconds: 5 }
+          },
+          {
+            urlPattern: ({ url }) => url.origin === self.location.origin,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'app',
+              networkTimeoutSeconds: 4,
+              expiration: { maxEntries: 80 }
+            }
           }
         ]
       }
