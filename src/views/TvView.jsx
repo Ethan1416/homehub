@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useEvents, useClaudeStatus } from '../lib/useData.js'
 import { MACHINES, ownerColor } from '../lib/constants.js'
-import { sameDay, addDays, fmtTime, relTime, startOfDay } from '../lib/date.js'
+import { sameDay, addDays, fmtTime, relTime, startOfDay, occursOn, minutesOfDay } from '../lib/date.js'
 
 const isStale = (s) =>
   s?.state === 'working' && s.updated_at &&
@@ -42,8 +42,8 @@ export default function TvView() {
   const today = startOfDay(now)
   const todays = useMemo(() =>
     events
-      .filter((e) => sameDay(new Date(e.starts_at), today))
-      .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)),
+      .filter((e) => occursOn(e, today))
+      .sort((a, b) => minutesOfDay(a) - minutesOfDay(b)),
     [events, today.getTime()]
   )
   const week = Array.from({ length: 7 }, (_, i) => addDays(today, i))
@@ -72,7 +72,7 @@ export default function TvView() {
 
         <div className="tv-week">
           {week.map((d) => {
-            const evs = events.filter((e) => sameDay(new Date(e.starts_at), d))
+            const evs = events.filter((e) => occursOn(e, d))
             return (
               <div key={d.toISOString()} className={`tv-wd ${sameDay(d, today) ? 'today' : ''}`}>
                 <div className="wn">{d.toLocaleDateString([], { weekday: 'short' })}</div>

@@ -3,7 +3,8 @@ import { useEvents, useClaudeStatus } from '../lib/useData.js'
 import { isConfigured } from '../supabaseClient.js'
 import { PEOPLE, MACHINES, ownerColor, ownerLabel } from '../lib/constants.js'
 import {
-  monthMatrix, fmtMonthYear, fmtDayLong, fmtTime, sameDay, addDays, relTime
+  monthMatrix, fmtMonthYear, fmtDayLong, fmtTime, sameDay, addDays, relTime,
+  occursOn, minutesOfDay
 } from '../lib/date.js'
 import EventModal from '../components/EventModal.jsx'
 
@@ -20,10 +21,9 @@ export default function PhoneView() {
   const [modal, setModal] = useState(null) // {event} | {new:true}
 
   const matrix = useMemo(() => monthMatrix(cursor), [cursor])
-  const eventsByDay = (d) =>
-    events.filter((e) => sameDay(new Date(e.starts_at), d))
+  const eventsByDay = (d) => events.filter((e) => occursOn(e, d))
   const dayEvents = eventsByDay(selected)
-    .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at))
+    .sort((a, b) => minutesOfDay(a) - minutesOfDay(b))
 
   return (
     <div className="phone">
@@ -91,7 +91,7 @@ export default function PhoneView() {
             <span className="et">{e.all_day ? 'All day' : fmtTime(e.starts_at)}</span>
             <span className="eb">
               <b>{e.title}</b>
-              <p>{ownerLabel(e.owner)}{e.notes ? ` · ${e.notes}` : ''}</p>
+              <p>{e.recurrence === 'daily' ? '↻ Daily · ' : ''}{ownerLabel(e.owner)}{e.notes ? ` · ${e.notes}` : ''}</p>
             </span>
           </button>
         ))}

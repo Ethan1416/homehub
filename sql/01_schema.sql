@@ -9,6 +9,7 @@ create table if not exists public.events (
   starts_at   timestamptz not null,
   ends_at     timestamptz not null,
   all_day     boolean not null default false,
+  recurrence  text not null default 'none' check (recurrence in ('none','daily')),
   notes       text,
   created_at  timestamptz not null default now()
 );

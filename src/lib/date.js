@@ -34,6 +34,21 @@ export const relTime = (iso) => {
   return `${Math.floor(s / 86400)}d ago`
 }
 
+// Does an event occur on day `d`? One-off: same calendar day.
+// Daily-recurring: every day on/after its start date, using its time-of-day.
+export const occursOn = (ev, d) => {
+  const s = new Date(ev.starts_at)
+  if (ev.recurrence === 'daily') return startOfDay(d) >= startOfDay(s)
+  return sameDay(s, d)
+}
+
+// Minutes since midnight for stable agenda ordering across recurring events.
+export const minutesOfDay = (ev) => {
+  if (ev.all_day) return -1
+  const s = new Date(ev.starts_at)
+  return s.getHours() * 60 + s.getMinutes()
+}
+
 // For <input type="datetime-local"> round-tripping in local time.
 export const toLocalInput = (d) => {
   const p = (n) => String(n).padStart(2, '0')

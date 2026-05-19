@@ -8,6 +8,7 @@ export default function EventModal({ event, defaultDate, onClose }) {
     title: '',
     owner: 'shared',
     all_day: false,
+    recurrence: 'none',
     starts_at: new Date(defaultDate.setHours(9, 0, 0, 0)).toISOString(),
     ends_at: new Date(defaultDate.setHours(10, 0, 0, 0)).toISOString(),
     notes: ''
@@ -28,6 +29,7 @@ export default function EventModal({ event, defaultDate, onClose }) {
       title: f.title.trim(),
       owner: f.owner,
       all_day: f.all_day,
+      recurrence: f.recurrence || 'none',
       starts_at: fromLocalInput(f.startLocal).toISOString(),
       ends_at: fromLocalInput(f.endLocal).toISOString(),
       notes: f.notes?.trim() || null
@@ -73,6 +75,20 @@ export default function EventModal({ event, defaultDate, onClose }) {
             <label>Ends</label>
             <input type="datetime-local" value={f.endLocal}
               onChange={(e) => set('endLocal', e.target.value)} />
+          </div>
+        </div>
+
+        <div className="fld">
+          <label>Repeat</label>
+          <div className="chips">
+            <button className={`chip ${f.recurrence !== 'daily' ? 'on' : ''}`}
+              style={{ color: 'var(--accent)' }} onClick={() => set('recurrence', 'none')}>
+              One-off
+            </button>
+            <button className={`chip ${f.recurrence === 'daily' ? 'on' : ''}`}
+              style={{ color: 'var(--accent)' }} onClick={() => set('recurrence', 'daily')}>
+              ↻ Every day
+            </button>
           </div>
         </div>
 
