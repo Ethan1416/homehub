@@ -7,8 +7,20 @@ for two machines. One web app, three faces:
 - **`/tv`** — large read-only dashboard for the TV (driven by a Chromecast/Fire Stick)
 - Realtime sync via Supabase — changes appear on every screen in ~1–2s
 
+**Live:** https://ethan1416.github.io/homehub/ — phone PWA · `/#/tv` — TV dashboard
+
 ## Stack
-Vite + React + React Router · Supabase (Postgres + Realtime + Edge Function) · Vercel
+Vite + React + React Router (HashRouter) · Supabase (Postgres + Realtime + Edge
+Function) · hosted free on GitHub Pages (`gh-pages` branch)
+
+## Deploy a new build
+```
+npm run build
+# publish dist/ to the gh-pages branch (see scripts/deploy-pages.sh)
+```
+Supabase project ref: `kiuxegztynurpthxsnvr` (org "HomeHub", Free plan).
+Secrets live outside the repo: `~/.config/homehub/env` (Mac hook),
+Supabase project secret `HOMEHUB_INGEST_SECRET` (Edge Function).
 
 ## Setup
 
