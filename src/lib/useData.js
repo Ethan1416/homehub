@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase, isConfigured } from '../supabaseClient.js'
 
 // Shared realtime data layer for both the phone and TV views.
@@ -56,8 +56,10 @@ export function useClaudeStatus() {
 
 // Per-occurrence progress for a given local date (YYYY-MM-DD).
 // Returns byEvent[event_id][item_key] = row, plus a realtime subscription.
+let _chSeq = 0
 export function useProgress(logDate) {
   const [byEvent, setByEvent] = useState({})
+  const chanId = useRef(++_chSeq)
 
   const reload = useCallback(async () => {
     if (!isConfigured || !logDate) return
@@ -74,7 +76,7 @@ export function useProgress(logDate) {
     reload()
     if (!isConfigured) return
     const ch = supabase
-      .channel(`progress-${logDate}`)
+      .channel(`progress-${logDate}-${chanId.current}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'progress' }, reload)
       .subscribe()
     return () => supabase.removeChannel(ch)
