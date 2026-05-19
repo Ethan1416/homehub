@@ -91,7 +91,14 @@ export default function PhoneView() {
             <span className="et">{e.all_day ? 'All day' : fmtTime(e.starts_at)}</span>
             <span className="eb">
               <b>{e.title}</b>
-              <p>{e.recurrence === 'daily' ? '↻ Daily · ' : e.recurrence === 'weekly' ? '↻ Weekly · ' : ''}{ownerLabel(e.owner)}{e.notes ? ` · ${e.notes}` : ''}</p>
+              <p>{e.recurrence === 'daily' ? '↻ Daily · ' : e.recurrence === 'weekly' ? '↻ Weekly · ' : ''}{ownerLabel(e.owner)}</p>
+              {e.notes && (
+                <span className="en">
+                  {e.notes.split('\n').filter(Boolean).map((ln, i) => (
+                    <span className="nl" key={i}>{ln}</span>
+                  ))}
+                </span>
+              )}
             </span>
           </button>
         ))}

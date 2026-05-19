@@ -64,7 +64,13 @@ export default function TvView() {
               <span className="tt">{e.all_day ? 'All day' : fmtTime(e.starts_at)}</span>
               <span className="tb">
                 {e.title}
-                {e.notes && <small>{e.notes}</small>}
+                {e.notes && (
+                  <small>
+                    {e.notes.split('\n').filter(Boolean).map((ln, i) => (
+                      <span className="nl" key={i}>{ln}</span>
+                    ))}
+                  </small>
+                )}
               </span>
             </div>
           ))}

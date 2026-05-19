@@ -54,6 +54,9 @@ button { font: inherit; cursor: pointer; border: none; }
 .evrow .eb { flex: 1; }
 .evrow .eb b { font-size: 15px; }
 .evrow .eb p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.evrow .eb .en { display: block; margin-top: 6px; }
+.evrow .eb .en .nl { display: block; font-size: 13px; color: var(--text);
+  opacity: .82; line-height: 1.5; }
 .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 30px 0; }
 .fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px;
   border-radius: 50%; background: var(--accent); color: #0b1020; font-size: 28px;
@@ -132,6 +135,7 @@ button { font: inherit; cursor: pointer; border: none; }
   border-left: 6px solid var(--accent); }
 .tv-ev .tt { font-size: 24px; color: var(--muted); min-width: 150px; }
 .tv-ev .tb { font-size: 28px; font-weight: 600; }
+.tv-ev .tb small .nl { display: block; line-height: 1.45; margin-top: 4px; }
 .tv-ev .tb small { display: block; font-size: 18px; color: var(--muted);
   font-weight: 400; margin-top: 3px; }
 .tv-empty { color: var(--muted); font-size: 24px; padding: 50px 0; }
