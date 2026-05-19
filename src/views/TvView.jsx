@@ -65,10 +65,12 @@ export default function TvView() {
               <span className="tb">
                 {e.title}
                 {e.notes && (
-                  <small>
-                    {e.notes.split('\n').filter(Boolean).map((ln, i) => (
-                      <span className="nl" key={i}>{ln}</span>
-                    ))}
+                  <small className="notes">
+                    {e.notes.split('\n').filter((l) => l.trim()).map((ln, i) => {
+                      const ex = /^\d+[.)]\s/.test(ln.trim())
+                      const cls = ex ? 'n-ex' : i === 0 ? 'n-hdr' : 'n-line'
+                      return <span className={cls} key={i}>{ln.trim()}</span>
+                    })}
                   </small>
                 )}
               </span>

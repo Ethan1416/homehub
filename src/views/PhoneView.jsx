@@ -94,9 +94,11 @@ export default function PhoneView() {
               <p>{e.recurrence === 'daily' ? '↻ Daily · ' : e.recurrence === 'weekly' ? '↻ Weekly · ' : ''}{ownerLabel(e.owner)}</p>
               {e.notes && (
                 <span className="en">
-                  {e.notes.split('\n').filter(Boolean).map((ln, i) => (
-                    <span className="nl" key={i}>{ln}</span>
-                  ))}
+                  {e.notes.split('\n').filter((l) => l.trim()).map((ln, i) => {
+                    const ex = /^\d+[.)]\s/.test(ln.trim())
+                    const cls = ex ? 'n-ex' : i === 0 ? 'n-hdr' : 'n-line'
+                    return <span className={cls} key={i}>{ln.trim()}</span>
+                  })}
                 </span>
               )}
             </span>
