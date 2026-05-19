@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase, isConfigured } from '../supabaseClient.js'
+import { occursOn } from './date.js'
+import { parseEvent, completion } from './checklist.js'
 
 // Shared realtime data layer for both the phone and TV views.
 
@@ -85,25 +87,46 @@ export function useProgress(logDate) {
   return { byEvent, reload }
 }
 
-// Count consecutive days (ending today, or yesterday if today not yet started)
-// on which the user marked at least one item done.
-export function useStreak() {
+// Consecutive days ending today on which EVERY scheduled event was fully
+// completed (all items / all gym sets). Today gets a grace until end-of-day
+// (today being incomplete doesn't break the streak — yesterday determines it).
+// A day with no scheduled events is treated as a break.
+export function useStreak(events) {
   const [streak, setStreak] = useState(0)
   const chanId = useRef(++_chSeq)
 
   const reload = useCallback(async () => {
     if (!isConfigured) return
+    const since = new Date(); since.setDate(since.getDate() - 120)
+    const sinceKey = since.toISOString().slice(0, 10)
     const { data } = await supabase
-      .from('progress').select('log_date').eq('done', true)
-    const dates = new Set((data || []).map((r) => r.log_date))
+      .from('progress').select('*').gte('log_date', sinceKey)
+
+    // Bucket: byDate[ymd][event_id][item_key] = row
+    const byDate = {}
+    for (const r of data || []) {
+      ((byDate[r.log_date] ||= {})[r.event_id] ||= {})[r.item_key] = r
+    }
     const pad = (n) => String(n).padStart(2, '0')
     const key = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+
+    const dayQualifies = (d) => {
+      const todays = (events || []).filter((e) => occursOn(e, d))
+      if (todays.length === 0) return false
+      const pd = byDate[key(d)] || {}
+      return todays.every((e) => {
+        const parsed = parseEvent(e)
+        const { done, total } = completion(parsed, pd[e.id] || {})
+        return total > 0 && done === total
+      })
+    }
+
     let d = new Date()
-    if (!dates.has(key(d))) d.setDate(d.getDate() - 1) // grace for today
+    if (!dayQualifies(d)) d.setDate(d.getDate() - 1) // grace for today
     let n = 0
-    while (dates.has(key(d))) { n++; d.setDate(d.getDate() - 1) }
+    while (dayQualifies(d) && n < 400) { n++; d.setDate(d.getDate() - 1) }
     setStreak(n)
-  }, [])
+  }, [events])
 
   useEffect(() => {
     reload()

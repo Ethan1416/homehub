@@ -31,7 +31,7 @@ const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 export default function PhoneView() {
   const { events } = useEvents()
   const { statuses } = useClaudeStatus()
-  const streak = useStreak()
+  const streak = useStreak(events)
   const [selected, setSelected] = useState(new Date())
   const [weekBase, setWeekBase] = useState(new Date())
   const [filter, setFilter] = useState(null) // null | todo | progress | done
