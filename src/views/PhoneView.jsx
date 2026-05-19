@@ -7,6 +7,7 @@ import {
   occursOn, minutesOfDay
 } from '../lib/date.js'
 import EventModal from '../components/EventModal.jsx'
+import ChecklistSheet from '../components/ChecklistSheet.jsx'
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 const isStale = (s) =>
@@ -87,7 +88,7 @@ export default function PhoneView() {
         {dayEvents.length === 0 && <div className="empty">Nothing scheduled</div>}
         {dayEvents.map((e) => (
           <button key={e.id} className="evrow" style={{ borderLeftColor: ownerColor(e.owner) }}
-            onClick={() => setModal({ event: e })}>
+            onClick={() => setModal({ checklist: e })}>
             <span className="et">{e.all_day ? 'All day' : fmtTime(e.starts_at)}</span>
             <span className="eb">
               <b>{e.title}</b>
@@ -108,7 +109,16 @@ export default function PhoneView() {
 
       <button className="fab" onClick={() => setModal({ new: true })}>+</button>
 
-      {modal && (
+      {modal?.checklist && (
+        <ChecklistSheet
+          event={modal.checklist}
+          day={new Date(selected)}
+          onClose={() => setModal(null)}
+          onEdit={() => setModal({ event: modal.checklist })}
+        />
+      )}
+
+      {(modal?.new || modal?.event) && (
         <EventModal
           event={modal.event}
           defaultDate={new Date(selected)}

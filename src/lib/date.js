@@ -51,6 +51,12 @@ export const minutesOfDay = (ev) => {
   return s.getHours() * 60 + s.getMinutes()
 }
 
+// Local YYYY-MM-DD key for a day (used to scope per-occurrence progress).
+export const ymd = (d) => {
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
 // For <input type="datetime-local"> round-tripping in local time.
 export const toLocalInput = (d) => {
   const p = (n) => String(n).padStart(2, '0')

@@ -54,6 +54,43 @@ export function useClaudeStatus() {
   return { statuses }
 }
 
+// Per-occurrence progress for a given local date (YYYY-MM-DD).
+// Returns byEvent[event_id][item_key] = row, plus a realtime subscription.
+export function useProgress(logDate) {
+  const [byEvent, setByEvent] = useState({})
+
+  const reload = useCallback(async () => {
+    if (!isConfigured || !logDate) return
+    const { data } = await supabase
+      .from('progress').select('*').eq('log_date', logDate)
+    const m = {}
+    for (const r of data || []) {
+      ;(m[r.event_id] ||= {})[r.item_key] = r
+    }
+    setByEvent(m)
+  }, [logDate])
+
+  useEffect(() => {
+    reload()
+    if (!isConfigured) return
+    const ch = supabase
+      .channel(`progress-${logDate}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'progress' }, reload)
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [reload, logDate])
+
+  return { byEvent, reload }
+}
+
+export async function saveProgress(eventId, logDate, itemKey, patch) {
+  if (!isConfigured) return
+  return supabase.from('progress').upsert(
+    { event_id: eventId, log_date: logDate, item_key: itemKey, updated_at: new Date().toISOString(), ...patch },
+    { onConflict: 'event_id,log_date,item_key' }
+  )
+}
+
 export async function saveEvent(ev) {
   if (!isConfigured) return { error: 'not configured' }
   if (ev.id) {

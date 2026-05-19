@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useEvents, useClaudeStatus } from '../lib/useData.js'
+import { useEvents, useClaudeStatus, useProgress } from '../lib/useData.js'
 import { MACHINES, ownerColor } from '../lib/constants.js'
-import { sameDay, addDays, fmtTime, relTime, startOfDay, occursOn, minutesOfDay } from '../lib/date.js'
+import { sameDay, addDays, fmtTime, relTime, startOfDay, occursOn, minutesOfDay, ymd } from '../lib/date.js'
+import { parseEvent, completion } from '../lib/checklist.js'
 
 const isStale = (s) =>
   s?.state === 'working' && s.updated_at &&
@@ -40,6 +41,7 @@ export default function TvView() {
   }, [])
 
   const today = startOfDay(now)
+  const { byEvent } = useProgress(ymd(today))
   const todays = useMemo(() =>
     events
       .filter((e) => occursOn(e, today))
@@ -59,11 +61,22 @@ export default function TvView() {
         <div className="tv-section">Today</div>
         <div className="tv-agenda">
           {todays.length === 0 && <div className="tv-empty">Nothing scheduled today 🎉</div>}
-          {todays.map((e) => (
-            <div className="tv-ev" key={e.id} style={{ borderLeftColor: ownerColor(e.owner) }}>
+          {todays.map((e) => {
+            const { done, total } = completion(parseEvent(e), byEvent[e.id] || {})
+            const complete = total > 0 && done === total
+            return (
+            <div className={`tv-ev ${complete ? 'done' : ''}`} key={e.id}
+              style={{ borderLeftColor: ownerColor(e.owner) }}>
               <span className="tt">{e.all_day ? 'All day' : fmtTime(e.starts_at)}</span>
               <span className="tb">
-                {e.title}
+                <span className="tb-title">
+                  {e.title}
+                  {total > 0 && (
+                    <span className={`tv-prog ${complete ? 'ok' : ''}`}>
+                      {complete ? '✓ done' : `${done}/${total}`}
+                    </span>
+                  )}
+                </span>
                 {e.notes && (
                   <small className="notes">
                     {e.notes.split('\n').filter((l) => l.trim()).map((ln, i) => {
@@ -75,7 +88,8 @@ export default function TvView() {
                 )}
               </span>
             </div>
-          ))}
+            )
+          })}
         </div>
 
         <div className="tv-week">

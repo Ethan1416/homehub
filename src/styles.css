@@ -124,6 +124,43 @@ button { font: inherit; cursor: pointer; border: none; }
 .pk:active { background: var(--accent); color: #0b1020; }
 .pk.del { background: transparent; font-size: 22px; }
 
+/* ---------- Checklist sheet ---------- */
+.sheet.cl { max-height: 88vh; display: flex; flex-direction: column; }
+.cl-head { display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 12px; margin-bottom: 14px; }
+.cl-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.cl-prog { background: var(--panel-2); color: var(--accent); font-weight: 700;
+  font-size: 15px; padding: 7px 12px; border-radius: 999px; white-space: nowrap; }
+.cl-body { overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+.cl-info { font-size: 13px; color: var(--muted); margin: 0 0 10px;
+  line-height: 1.45; }
+.cl-info:first-letter { text-transform: uppercase; }
+.cl-item { width: 100%; display: flex; align-items: center; gap: 12px;
+  background: var(--panel-2); color: var(--text); text-align: left;
+  padding: 13px 14px; border-radius: 12px; margin-bottom: 8px; font-size: 15px; }
+.cl-item.on { opacity: .55; }
+.cl-item.on span:last-child { text-decoration: line-through; }
+.cl-box, .cl-chk { width: 26px; height: 26px; min-width: 26px; border-radius: 8px;
+  border: 2px solid var(--line); display: flex; align-items: center;
+  justify-content: center; color: var(--good); font-weight: 800; font-size: 15px;
+  background: transparent; }
+.cl-chk.on, .cl-item.on .cl-box { border-color: var(--good); background: rgba(95,208,160,.15); }
+.cl-ex { background: var(--panel-2); border-radius: 12px; padding: 12px 13px;
+  margin-bottom: 10px; }
+.cl-ex-name { font-size: 14px; font-weight: 600; margin-bottom: 9px; line-height: 1.4; }
+.cl-sets { display: flex; flex-direction: column; gap: 6px; }
+.cl-setrow { display: grid; grid-template-columns: 36px 1fr 1fr 40px;
+  gap: 8px; align-items: center; }
+.cl-setrow-h { font-size: 11px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .5px; }
+.cl-setrow-h span { text-align: center; }
+.cl-setrow-h span:first-child { text-align: left; }
+.cl-setn { font-size: 14px; color: var(--muted); }
+.cl-setrow input { width: 100%; background: var(--panel); color: var(--text);
+  border: 1px solid var(--line); border-radius: 8px; padding: 9px 8px;
+  font-size: 15px; text-align: center; }
+.cl-setrow .cl-chk { margin: 0 auto; }
+
 /* ---------- TV view ---------- */
 .tv { height: 100vh; display: grid; grid-template-columns: 1.15fr 1fr;
   gap: 28px; padding: 40px 48px; background:
@@ -139,7 +176,14 @@ button { font: inherit; cursor: pointer; border: none; }
   background: var(--panel); border-radius: 16px; margin-bottom: 14px;
   border-left: 6px solid var(--accent); }
 .tv-ev .tt { font-size: 24px; color: var(--muted); min-width: 150px; }
+.tv-ev.done { opacity: .42; }
+.tv-ev.done .tb-title { text-decoration: line-through; }
 .tv-ev .tb { font-size: 28px; font-weight: 600; }
+.tv-ev .tb-title { display: flex; align-items: center; gap: 16px; }
+.tv-prog { font-size: 18px; font-weight: 700; color: var(--accent);
+  background: rgba(124,156,255,.14); padding: 4px 14px; border-radius: 999px;
+  white-space: nowrap; }
+.tv-prog.ok { color: var(--good); background: rgba(95,208,160,.16); }
 .tv-ev .tb small.notes { margin-top: 8px; }
 .tv-ev .tb small .n-hdr { display: block; font-size: 18px; line-height: 1.5;
   color: var(--muted); margin-bottom: 4px; }
