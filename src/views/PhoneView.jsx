@@ -94,6 +94,10 @@ export default function PhoneView() {
       </div>
 
       <div className="cats">
+        <div className="cat cat-streak">
+          <span className="cat-ic" style={{ background: '#fff1e3', color: '#e5572b' }}>{streak}</span>
+          <span className="cat-lb">🔥 Streak</span>
+        </div>
         {[
           ['todo', 'To-Do', '#e5575d', '#fdeaea'],
           ['progress', 'Progress', '#dba032', '#fdf4e1'],
