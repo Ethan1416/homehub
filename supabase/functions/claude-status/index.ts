@@ -1,9 +1,5 @@
-// Secured Claude-status ingest. Deploy:
-//   supabase functions deploy claude-status --no-verify-jwt
-//   supabase secrets set HOMEHUB_INGEST_SECRET=<random>
-// The hook scripts POST here with header x-homehub-secret.
-import { createClient } from 'jsr:@supabase/supabase-js@2'
-
+// Secured Claude-status ingest. No external imports (single-file deploy safe).
+// Hook scripts POST here with header x-homehub-secret.
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'content-type, x-homehub-secret',
@@ -25,20 +21,29 @@ Deno.serve(async (req) => {
   if (machine !== 'mac' && machine !== 'pc') {
     return new Response('bad machine', { status: 400, headers: cors })
   }
-  const state = body.state === 'working' ? 'working' : 'idle'
 
-  const sb = createClient(
-    Deno.env.get('SUPABASE_URL'),
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  )
-
-  const patch = { state, updated_at: new Date().toISOString() }
+  const patch: Record<string, unknown> = {
+    state: body.state === 'working' ? 'working' : 'idle',
+    updated_at: new Date().toISOString()
+  }
   if (typeof body.project === 'string') patch.project = body.project.slice(0, 200)
   if (typeof body.last_task === 'string') patch.last_task = body.last_task.slice(0, 500)
 
-  const { error } = await sb.from('claude_status').update(patch).eq('machine', machine)
-  if (error) return new Response(error.message, { status: 500, headers: cors })
-
+  const url = Deno.env.get('SUPABASE_URL')
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+  const r = await fetch(`${url}/rest/v1/claude_status?machine=eq.${machine}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: key!,
+      Authorization: `Bearer ${key}`,
+      'content-type': 'application/json',
+      Prefer: 'return=minimal'
+    },
+    body: JSON.stringify(patch)
+  })
+  if (!r.ok) {
+    return new Response(await r.text(), { status: 500, headers: cors })
+  }
   return new Response(JSON.stringify({ ok: true }), {
     headers: { ...cors, 'content-type': 'application/json' }
   })
