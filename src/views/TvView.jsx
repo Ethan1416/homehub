@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useEvents, useClaudeStatus, useProgress } from '../lib/useData.js'
+import { useEvents, useClaudeStatus, useProgress, useHealth } from '../lib/useData.js'
 import { MACHINES, ownerColor } from '../lib/constants.js'
 import { sameDay, addDays, fmtTime, relTime, startOfDay, occursOn, minutesOfDay, ymd } from '../lib/date.js'
 import { parseEvent, completion } from '../lib/checklist.js'
@@ -42,6 +42,8 @@ export default function TvView() {
 
   const today = startOfDay(now)
   const { byEvent } = useProgress(ymd(today))
+  const health = useHealth(1)
+  const h = health[0]
   const todays = useMemo(() =>
     events
       .filter((e) => occursOn(e, today))
@@ -111,6 +113,32 @@ export default function TvView() {
       </div>
 
       <div className="tv-right">
+        {h && (
+          <div className="tv-card tv-vitals">
+            <div className="ch">💍 Vitals</div>
+            <div className="tv-vrings">
+              {[
+                ['Readiness', h.readiness_score],
+                ['Sleep', h.sleep_score],
+                ['Activity', h.activity_score]
+              ].map(([lbl, v]) => (
+                <div className="tv-vring" key={lbl}>
+                  <b style={{ color: v >= 85 ? '#5fd0a0' : v >= 70 ? '#7c9cff' : v >= 60 ? '#ffb454' : '#ff6b6b' }}>
+                    {v ?? '—'}
+                  </b>
+                  <small>{lbl}</small>
+                </div>
+              ))}
+            </div>
+            <div className="tv-vstats">
+              <span><i>Sleep</i> {h.total_sleep_seconds ? `${Math.floor(h.total_sleep_seconds/3600)}h ${Math.round((h.total_sleep_seconds%3600)/60)}m` : '—'}</span>
+              <span><i>HRV</i> {h.hrv_avg != null ? `${Math.round(Number(h.hrv_avg))} ms` : '—'}</span>
+              <span><i>Resting HR</i> {h.resting_hr != null ? `${Math.round(Number(h.resting_hr))} bpm` : '—'}</span>
+              <span><i>Steps</i> {h.steps?.toLocaleString() || '—'}</span>
+            </div>
+          </div>
+        )}
+
         <div className="tv-section">Claude</div>
         {Object.entries(MACHINES).map(([mk, m]) => {
           const s = statuses.find((x) => x.machine === mk)

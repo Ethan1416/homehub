@@ -148,6 +148,34 @@ export function useStreak(events) {
   return streak
 }
 
+// Last N days of Oura snapshots from health_daily (server-synced hourly).
+export function useHealth(days = 14) {
+  const [rows, setRows] = useState([])
+  const chanId = useRef(++_chSeq)
+
+  const reload = useCallback(async () => {
+    if (!isConfigured) return
+    const { data } = await supabase
+      .from('health_daily').select('*')
+      .order('day', { ascending: false }).limit(days)
+    setRows(data || [])
+  }, [days])
+
+  useEffect(() => {
+    reload()
+    if (!isConfigured) return
+    const ch = supabase
+      .channel(`health-${chanId.current}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'health_daily' }, reload)
+      .subscribe()
+    // Also refresh every 5 minutes (cron runs hourly but UI feels live).
+    const t = setInterval(reload, 5 * 60 * 1000)
+    return () => { supabase.removeChannel(ch); clearInterval(t) }
+  }, [reload])
+
+  return rows
+}
+
 export async function saveProgress(eventId, logDate, itemKey, patch) {
   if (!isConfigured) return
   return supabase.from('progress').upsert(

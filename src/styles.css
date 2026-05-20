@@ -56,6 +56,29 @@ body {
 .tab-btn.on .tb-ic svg { opacity: 1; }
 .cal-hint { font-size: 12px; color: var(--muted); text-align: center;
   margin-top: 18px; }
+.ora-hdr { margin-bottom: 14px; }
+.ora-rings { display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 10px; margin-bottom: 14px; }
+.ora-card { background: var(--panel); border-radius: 16px;
+  padding: 14px 10px 12px; text-align: center;
+  box-shadow: var(--shadow); }
+.ora-ring { position: relative; width: 92px; height: 92px; margin: 0 auto; }
+.ora-ring-c { position: absolute; inset: 0; display: flex;
+  flex-direction: column; align-items: center; justify-content: center; }
+.ora-ring-c b { font-size: 22px; font-weight: 800; line-height: 1; }
+.ora-ring-c small { font-size: 10px; color: var(--muted); margin-top: 2px;
+  text-transform: uppercase; letter-spacing: .6px; font-weight: 700; }
+.ora-cap { font-size: 11px; color: var(--muted); font-weight: 700;
+  margin: 6px 0 8px; }
+.ora-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.ora-stat { background: var(--panel); border-radius: 14px; padding: 13px 14px;
+  box-shadow: var(--shadow); }
+.ora-stat-wide { grid-column: 1 / -1; }
+.ora-stat small { display: block; font-size: 11px; color: var(--muted);
+  font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  margin-bottom: 4px; }
+.ora-stat b { display: block; font-size: 19px; font-weight: 800;
+  letter-spacing: -.3px; margin-bottom: 4px; }
 .oura-empty { background: var(--panel); border-radius: 18px; padding: 28px 22px;
   box-shadow: var(--shadow); text-align: center; }
 .oura-empty .oura-emoji { font-size: 56px; margin-bottom: 10px; }
@@ -401,6 +424,18 @@ button { font: inherit; cursor: pointer; border: none; }
 .tv-card .cproj { font-size: 26px; font-weight: 600; }
 .tv-card .ctask { font-size: 19px; color: var(--muted); margin-top: 10px; line-height: 1.4; }
 .tv-card .cwhen { font-size: 15px; color: var(--muted); margin-top: 14px; }
+.tv-vitals .tv-vrings { display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 18px; margin: 18px 0 14px; }
+.tv-vring { text-align: center; }
+.tv-vring b { display: block; font-size: 42px; font-weight: 800; line-height: 1; }
+.tv-vring small { display: block; font-size: 14px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.2px; font-weight: 700;
+  margin-top: 6px; }
+.tv-vstats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 18px;
+  font-size: 17px; color: var(--text); }
+.tv-vstats span { display: flex; justify-content: space-between; align-items: baseline; }
+.tv-vstats i { color: var(--muted); font-style: normal; font-size: 14px;
+  text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-right: 8px; }
 .bigpulse { width: 16px; height: 16px; border-radius: 50%; background: var(--muted); }
 .bigpulse.working { background: var(--good);
   animation: pulse 1.6s infinite; box-shadow: 0 0 0 0 rgba(95,208,160,.7); }
