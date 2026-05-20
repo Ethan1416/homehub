@@ -6,11 +6,12 @@ import ChecklistSheet from '../components/ChecklistSheet.jsx'
 import TasksTab from './tabs/TasksTab.jsx'
 import CalendarTab from './tabs/CalendarTab.jsx'
 import OuraTab from './tabs/OuraTab.jsx'
+import { IconTasks, IconCalendar, IconOura } from '../components/Icons.jsx'
 
 const TABS = [
-  { k: 'tasks', em: '📋', label: 'Tasks' },
-  { k: 'calendar', em: '📅', label: 'Calendar' },
-  { k: 'oura', em: '💍', label: 'Oura' }
+  { k: 'tasks', Icon: IconTasks, label: 'Tasks' },
+  { k: 'calendar', Icon: IconCalendar, label: 'Calendar' },
+  { k: 'oura', Icon: IconOura, label: 'Vitals' }
 ]
 
 export default function PhoneView() {
@@ -49,11 +50,11 @@ export default function PhoneView() {
       )}
 
       <nav className="tabbar">
-        {TABS.map((t) => (
-          <button key={t.k} className={`tab-btn ${tab === t.k ? 'on' : ''}`}
-            onClick={() => setTab(t.k)}>
-            <span className="tb-em">{t.em}</span>
-            <span className="tb-lb">{t.label}</span>
+        {TABS.map(({ k, Icon, label }) => (
+          <button key={k} className={`tab-btn ${tab === k ? 'on' : ''}`}
+            onClick={() => setTab(k)}>
+            <span className="tb-ic"><Icon active={tab === k} /></span>
+            <span className="tb-lb">{label}</span>
           </button>
         ))}
       </nav>
