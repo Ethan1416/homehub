@@ -8,6 +8,7 @@ import { parseEvent, completion } from './checklist.js'
 export function useEvents() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
+  const chanId = useRef(++_chSeq)
 
   const reload = useCallback(async () => {
     if (!isConfigured) { setLoading(false); return }
@@ -23,7 +24,7 @@ export function useEvents() {
     reload()
     if (!isConfigured) return
     const ch = supabase
-      .channel('events-rt')
+      .channel(`events-${chanId.current}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'events' }, reload)
       .subscribe()
     return () => supabase.removeChannel(ch)
@@ -34,6 +35,7 @@ export function useEvents() {
 
 export function useClaudeStatus() {
   const [statuses, setStatuses] = useState([])
+  const chanId = useRef(++_chSeq)
 
   const reload = useCallback(async () => {
     if (!isConfigured) return
@@ -45,7 +47,7 @@ export function useClaudeStatus() {
     reload()
     if (!isConfigured) return
     const ch = supabase
-      .channel('claude-rt')
+      .channel(`claude-${chanId.current}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'claude_status' }, reload)
       .subscribe()
     // Periodic re-render so "Xm ago" stays fresh and stale "working" decays.
