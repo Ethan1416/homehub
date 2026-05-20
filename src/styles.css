@@ -57,6 +57,31 @@ body {
 .cal-hint { font-size: 12px; color: var(--muted); text-align: center;
   margin-top: 18px; }
 .ora-hdr { margin-bottom: 14px; }
+.cl-card { background: var(--panel); border-radius: 18px; padding: 16px 18px;
+  margin-bottom: 12px; box-shadow: var(--shadow);
+  border: 1px solid var(--line); }
+.cl-card.on { border-color: rgba(95,208,160,.45);
+  background: linear-gradient(180deg, rgba(95,208,160,.06), var(--panel) 70%); }
+.cl-card-top { display: grid; grid-template-columns: 14px 1fr auto;
+  align-items: center; gap: 12px; }
+.bigdot { width: 12px; height: 12px; border-radius: 50%; background: #b9bdcb; }
+.bigdot.i { background: #b9bdcb; }
+.bigdot.w { background: #2fb380; box-shadow: 0 0 0 0 rgba(47,179,128,.55);
+  animation: pulse 1.6s infinite; }
+.cl-card-top b { display: block; font-size: 16px; font-weight: 800;
+  letter-spacing: -.2px; }
+.cl-card-top small { display: block; font-size: 12px; color: var(--muted);
+  font-weight: 700; text-transform: uppercase; letter-spacing: .8px; margin-top: 2px; }
+.cl-when { font-size: 11px; color: var(--muted); font-weight: 600; }
+.cl-card-body { margin-top: 14px; padding-top: 14px;
+  border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+.cl-row { display: flex; gap: 12px; align-items: flex-start; }
+.cl-key { width: 78px; min-width: 78px; font-size: 11px; color: var(--muted);
+  font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+  padding-top: 2px; }
+.cl-val { flex: 1; font-size: 14px; color: var(--text); line-height: 1.45;
+  word-break: break-word; }
+.cl-task { font-size: 13px; color: #444a5e; }
 .ora-rings { display: grid; grid-template-columns: repeat(3, 1fr);
   gap: 10px; margin-bottom: 14px; }
 .ora-card { background: var(--panel); border-radius: 16px;

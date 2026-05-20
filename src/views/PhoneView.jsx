@@ -5,12 +5,14 @@ import EventModal from '../components/EventModal.jsx'
 import ChecklistSheet from '../components/ChecklistSheet.jsx'
 import TasksTab from './tabs/TasksTab.jsx'
 import CalendarTab from './tabs/CalendarTab.jsx'
+import ClaudeTab from './tabs/ClaudeTab.jsx'
 import OuraTab from './tabs/OuraTab.jsx'
-import { IconTasks, IconCalendar, IconOura } from '../components/Icons.jsx'
+import { IconTasks, IconCalendar, IconClaude, IconOura } from '../components/Icons.jsx'
 
 const TABS = [
   { k: 'tasks', Icon: IconTasks, label: 'Tasks' },
   { k: 'calendar', Icon: IconCalendar, label: 'Calendar' },
+  { k: 'claude', Icon: IconClaude, label: 'Claude' },
   { k: 'oura', Icon: IconOura, label: 'Vitals' }
 ]
 
@@ -42,6 +44,7 @@ export default function PhoneView() {
           <CalendarTab events={events} selected={selected} setSelected={setSelected}
             switchToTasks={() => setTab('tasks')} />
         )}
+        {tab === 'claude' && <ClaudeTab />}
         {tab === 'oura' && <OuraTab />}
       </div>
 
