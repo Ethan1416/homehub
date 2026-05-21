@@ -178,6 +178,31 @@ export function useHealth(days = 14) {
   return rows
 }
 
+// Ordered roadmap milestones.
+export function useMilestones() {
+  const [rows, setRows] = useState([])
+  const chanId = useRef(++_chSeq)
+
+  const reload = useCallback(async () => {
+    if (!isConfigured) return
+    const { data } = await supabase
+      .from('milestones').select('*').order('position', { ascending: true })
+    setRows(data || [])
+  }, [])
+
+  useEffect(() => {
+    reload()
+    if (!isConfigured) return
+    const ch = supabase
+      .channel(`milestones-${chanId.current}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'milestones' }, reload)
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [reload])
+
+  return rows
+}
+
 export async function saveProgress(eventId, logDate, itemKey, patch) {
   if (!isConfigured) return
   return supabase.from('progress').upsert(
