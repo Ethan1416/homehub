@@ -119,6 +119,39 @@ body {
 .cl-val { flex: 1; font-size: 14px; color: var(--text); line-height: 1.45;
   word-break: break-word; }
 .cl-task { font-size: 13px; color: #444a5e; }
+.cl-task-clip { display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden; }
+.cl-card-btn { width: 100%; text-align: left; cursor: pointer;
+  transition: transform .09s; }
+.cl-card-btn:active { transform: scale(.99); }
+.cl-chev { color: var(--muted); font-size: 22px; font-weight: 400;
+  margin-left: auto; padding-left: 6px; }
+.cl-row-when .cl-val { color: var(--muted); font-size: 12px; font-weight: 600; }
+
+/* ---- machine detail view ---- */
+.back-btn { background: transparent; color: var(--accent); font-weight: 700;
+  font-size: 14px; padding: 4px 0 12px; }
+.md-hero { background: var(--panel); border-radius: 20px; padding: 22px 22px 18px;
+  box-shadow: var(--shadow); margin-bottom: 14px;
+  border: 1px solid var(--line); }
+.md-hero.on { border-color: rgba(47,179,128,.45);
+  background: linear-gradient(180deg, rgba(47,179,128,.07), var(--panel) 70%); }
+.md-hero-top { display: flex; align-items: center; gap: 12px; }
+.md-hero .bigdot { width: 14px; height: 14px; }
+.md-name { font-size: 20px; font-weight: 800; letter-spacing: -.3px; }
+.md-state { font-size: 30px; font-weight: 800; letter-spacing: -.5px;
+  margin-top: 12px; }
+.md-hero.on .md-state { color: #2fb380; }
+.md-when { font-size: 13px; color: var(--muted); margin-top: 6px;
+  font-weight: 600; }
+.md-card { background: var(--panel); border-radius: 16px; padding: 14px 16px;
+  box-shadow: var(--shadow); margin-bottom: 10px; }
+.md-card small { display: block; font-size: 11px; color: var(--muted);
+  font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+  margin-bottom: 6px; }
+.md-card b { display: block; font-size: 16px; font-weight: 700; word-break: break-word; }
+.md-card p { font-size: 14px; line-height: 1.55; color: var(--text);
+  word-break: break-word; white-space: pre-wrap; }
 .ora-rings { display: grid; grid-template-columns: repeat(3, 1fr);
   gap: 10px; margin-bottom: 14px; }
 .ora-card { background: var(--panel); border-radius: 16px;
