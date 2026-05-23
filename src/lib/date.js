@@ -39,8 +39,13 @@ export const relTime = (iso) => {
 export const occursOn = (ev, d) => {
   const s = new Date(ev.starts_at)
   if (ev.recurrence === 'daily') return startOfDay(d) >= startOfDay(s)
-  if (ev.recurrence === 'weekly')
-    return d.getDay() === s.getDay() && startOfDay(d) >= startOfDay(s)
+  if (ev.recurrence === 'weekly') {
+    if (startOfDay(d) < startOfDay(s)) return false
+    const dow = d.getDay()
+    if (Array.isArray(ev.days_of_week) && ev.days_of_week.length > 0)
+      return ev.days_of_week.includes(dow)
+    return dow === s.getDay()
+  }
   return sameDay(s, d)
 }
 

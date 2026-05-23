@@ -477,6 +477,31 @@ button { font: inherit; cursor: pointer; border: none; }
   border: 1px solid var(--line); border-radius: 8px; padding: 9px 8px;
   font-size: 15px; text-align: center; }
 .cl-setrow .cl-chk { margin: 0 auto; }
+.cl-setrow { flex-wrap: wrap; row-gap: 6px; }
+.cl-effort { grid-column: 1 / -1; display: flex; gap: 6px;
+  margin: 2px 0 4px 44px; }
+.cl-setrow.maxed { background: rgba(245,90,46,.07); border-radius: 8px;
+  padding: 4px 6px; margin: -4px -6px; }
+.cl-setrow.could_do_more { background: rgba(91,110,245,.07); border-radius: 8px;
+  padding: 4px 6px; margin: -4px -6px; }
+.ef-btn { background: var(--panel); border: 1px solid var(--line);
+  color: var(--muted); font-size: 11px; font-weight: 700;
+  padding: 4px 9px; border-radius: 999px;
+  white-space: nowrap; letter-spacing: .2px; }
+.ef-btn.ef-max.on { background: rgba(245,90,46,.14); color: #d34a17;
+  border-color: rgba(245,90,46,.3); }
+.ef-btn.ef-more.on { background: rgba(91,110,245,.14); color: var(--accent);
+  border-color: rgba(91,110,245,.3); }
+
+/* event modal extras */
+.dow-row { display: flex; gap: 6px; }
+.dow-btn { flex: 1; padding: 9px 0; border-radius: 10px;
+  background: var(--panel-2); color: var(--text); font-size: 13px; font-weight: 700;
+  border: 2px solid transparent; }
+.dow-btn.on { border-color: var(--accent); color: var(--accent);
+  background: rgba(91,110,245,.08); }
+.fld .hint { display: block; font-size: 11px; color: var(--muted);
+  margin-top: 6px; line-height: 1.4; }
 
 /* ---------- TV view ---------- */
 .tv { height: 100vh; display: grid; grid-template-columns: 1.15fr 1fr;
