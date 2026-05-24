@@ -229,9 +229,10 @@ function ExerciseDetail({ ex, allRows, onBack }) {
   )
 }
 
-export default function WorkoutTab({ events }) {
+export default function WorkoutTab({ events, focusedEventId, clearFocus }) {
   const [allRows, setAllRows] = useState([])
   const [open, setOpen] = useState(null) // exercise name (normalized) when detail open
+  const focusedEvent = focusedEventId ? events.find((e) => e.id === focusedEventId) : null
 
   useEffect(() => {
     if (!isConfigured) return
@@ -248,8 +249,17 @@ export default function WorkoutTab({ events }) {
   }, [])
 
   const catalog = useMemo(() => exerciseCatalog(events), [events])
+  const filteredCatalog = useMemo(() => {
+    if (!focusedEventId) return catalog
+    const m = {}
+    for (const [k, c] of Object.entries(catalog)) {
+      if (c.sources.some((s) => s.event_id === focusedEventId)) m[k] = c
+    }
+    return m
+  }, [catalog, focusedEventId])
+
   const list = useMemo(() => {
-    return Object.values(catalog).map((c) => {
+    return Object.values(filteredCatalog).map((c) => {
       const { series, best } = exerciseHistory(c, allRows)
       return { ...c, series, best, last: series[series.length - 1] }
     }).sort((a, b) => {
@@ -261,7 +271,7 @@ export default function WorkoutTab({ events }) {
       if (bd) return 1
       return a.display.localeCompare(b.display)
     })
-  }, [catalog, allRows])
+  }, [filteredCatalog, allRows])
 
   if (open) {
     const ex = catalog[open]
@@ -281,8 +291,18 @@ export default function WorkoutTab({ events }) {
         </div>
       </div>
 
+      {focusedEvent && (
+        <div className="wo-focus">
+          <span className="wo-focus-l">
+            <small>Showing</small>
+            <b>{focusedEvent.title}</b>
+          </span>
+          <button className="wo-focus-clear" onClick={clearFocus}>Show all ×</button>
+        </div>
+      )}
+
       {list.length === 0 && (
-        <p className="cal-hint">No gym templates yet.</p>
+        <p className="cal-hint">No exercises here.</p>
       )}
 
       {list.map((c) => {

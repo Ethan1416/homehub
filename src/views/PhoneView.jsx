@@ -27,6 +27,7 @@ export default function PhoneView() {
   const [weekBase, setWeekBase] = useState(new Date())
   const [filter, setFilter] = useState(null)
   const [tab, setTab] = useState('tasks')
+  const [workoutFocus, setWorkoutFocus] = useState(null) // event_id to filter Workout tab to
   const [modal, setModal] = useState(null)
 
   return (
@@ -42,13 +43,18 @@ export default function PhoneView() {
             filter={filter} setFilter={setFilter}
             openChecklist={(e) => setModal({ checklist: e })}
             openGymPicker={(day) => setModal({ gymPicker: day })}
+            openWorkout={(eventId) => { setWorkoutFocus(eventId); setTab('workout') }}
           />
         )}
         {tab === 'calendar' && (
           <CalendarTab events={events} selected={selected} setSelected={setSelected}
             switchToTasks={() => setTab('tasks')} />
         )}
-        {tab === 'workout' && <WorkoutTab events={events} />}
+        {tab === 'workout' && (
+          <WorkoutTab events={events}
+            focusedEventId={workoutFocus}
+            clearFocus={() => setWorkoutFocus(null)} />
+        )}
         {tab === 'claude' && <ClaudeTab />}
         {tab === 'oura' && <OuraTab />}
       </div>
@@ -60,7 +66,7 @@ export default function PhoneView() {
       <nav className="tabbar">
         {TABS.map(({ k, Icon, label }) => (
           <button key={k} className={`tab-btn ${tab === k ? 'on' : ''}`}
-            onClick={() => setTab(k)}>
+            onClick={() => { setTab(k); if (k !== 'workout') setWorkoutFocus(null) }}>
             <span className="tb-ic"><Icon active={tab === k} /></span>
             <span className="tb-lb">{label}</span>
           </button>
