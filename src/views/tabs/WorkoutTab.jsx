@@ -22,37 +22,94 @@ const lineStyle = (m) => {
 
 function ExerciseChart({ series, milestones, color = '#5b6ef5' }) {
   if (series.length === 0 && (!milestones || milestones.length === 0)) return null
-  const W = 600, H = 260, P_L = 38, P_R = 100, P_T = 14, P_B = 28
+  const W = 600, H = 260, P_L = 36, P_R = 104, P_T = 14, P_B = 34
   const today = new Date(); today.setHours(0, 0, 0, 0)
   const dates = series.map((s) => new Date(s.date))
   const futureMs = (milestones || []).filter((m) => m.projectedDate)
   const mDts = futureMs.map((m) => new Date(m.projectedDate))
-  const minDate = dates.length ? new Date(Math.min(...dates.map((d) => d.getTime()))) : today
-  let maxDate = today
+
+  // X-domain bounds: left is earliest session (with two-week padding), right is
+  // the furthest milestone or last session.
+  const minSession = dates.length ? new Date(Math.min(...dates.map((d) => d.getTime()))) : today
+  let minDate = new Date(Math.min(minSession.getTime(), today.getTime()))
+  const fortnight = 14 * 86400000
+  if (today.getTime() - minDate.getTime() < fortnight) minDate = new Date(today.getTime() - fortnight)
+  let maxDate = new Date(today.getTime() + fortnight)
   for (const d of mDts) if (d > maxDate) maxDate = d
-  if (dates.length) {
-    const ld = dates[dates.length - 1]; if (ld > maxDate) maxDate = ld
+  for (const d of dates) if (d > maxDate) maxDate = d
+
+  // Piecewise X scale: if multi-year, give this year ~70% width and the rest
+  // (compressed yearly view) ~30%. If all milestones fit inside the current
+  // year, fall back to a plain linear scale.
+  const yearEnd = new Date(today.getFullYear(), 11, 31)
+  const totalW = W - P_L - P_R
+  const multiYear = maxDate > yearEnd
+  const nearFrac = 0.70
+  const nearW = totalW * nearFrac
+  const farW = totalW * (1 - nearFrac)
+  const nearSpan = Math.max(yearEnd.getTime() - minDate.getTime(), 86400000)
+  const farSpan = Math.max(maxDate.getTime() - yearEnd.getTime(), 86400000)
+
+  const x = (d) => {
+    const t = new Date(d).getTime()
+    if (!multiYear) return P_L + ((t - minDate.getTime()) / Math.max(maxDate - minDate, 1)) * totalW
+    if (t <= yearEnd.getTime())
+      return P_L + ((t - minDate.getTime()) / nearSpan) * nearW
+    return P_L + nearW + ((t - yearEnd.getTime()) / farSpan) * farW
   }
-  if (maxDate.getTime() === minDate.getTime()) maxDate.setDate(maxDate.getDate() + 14)
+
+  // Y-domain
   const allLevelWs = (milestones || []).map((m) => m.weight)
   const allW = [...series.map((s) => s.maxWeight), ...allLevelWs]
   const yLo = Math.max(0, Math.min(...allW, 0) * 0.85)
   const yHi = Math.max(...allW, 100) * 1.10
-  const x = (d) => P_L + ((new Date(d) - minDate) / (maxDate - minDate)) * (W - P_L - P_R)
   const y = (val) => H - P_B - ((val - yLo) / Math.max(yHi - yLo, 1)) * (H - P_T - P_B)
   const pts = series.map((s) => `${x(s.date).toFixed(1)},${y(s.maxWeight).toFixed(1)}`).join(' ')
 
+  // Tick generation — monthly for the current year, yearly beyond.
+  const ticks = []
+  const monthFmt = (d) =>
+    d.toLocaleDateString([], { month: 'short' }) + (d.getFullYear() !== today.getFullYear() ? ` '${String(d.getFullYear()).slice(-2)}` : '')
+  // monthly in near zone
+  {
+    const t = new Date(minDate.getFullYear(), minDate.getMonth(), 1)
+    while (t <= (multiYear ? yearEnd : maxDate)) {
+      if (t >= minDate) ticks.push({ d: new Date(t), label: monthFmt(t) })
+      t.setMonth(t.getMonth() + 1)
+    }
+  }
+  // yearly in far zone (Jan 1 of each year > current year)
+  if (multiYear) {
+    for (let yr = today.getFullYear() + 1; yr <= maxDate.getFullYear(); yr++) {
+      ticks.push({ d: new Date(yr, 0, 1), label: String(yr) })
+    }
+  }
+  // Density throttle: drop labels that would land within 38px of the prior.
+  const drawnTicks = []
+  let lastX = -Infinity
+  for (const t of ticks) {
+    const px = x(t.d)
+    if (px - lastX < 38) continue
+    drawnTicks.push({ ...t, px })
+    lastX = px
+  }
+
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="wo-chart" preserveAspectRatio="xMidYMid meet">
+      {/* baseline */}
       <line x1={P_L} y1={H - P_B} x2={W - P_R} y2={H - P_B} stroke="#dde0eb" strokeWidth="1" />
+
+      {/* near/far boundary indicator (subtle) */}
+      {multiYear && (
+        <line x1={P_L + nearW} y1={P_T} x2={P_L + nearW} y2={H - P_B}
+          stroke="#eceef5" strokeWidth="1" strokeDasharray="2 4" />
+      )}
 
       {/* horizontal milestone lines + right-side labels */}
       {(milestones || []).map((m, i) => {
         const s = lineStyle(m)
         const yy = y(m.weight)
-        const label = m.kind === 'bump'
-          ? `next +${m.label.replace(' lb','')}`
-          : m.label
+        const label = m.kind === 'bump' ? `next +${m.label.replace(' lb','')}` : m.label
         return (
           <g key={`l${i}`}>
             <line x1={P_L} y1={yy} x2={W - P_R} y2={yy}
@@ -76,34 +133,27 @@ function ExerciseChart({ series, milestones, color = '#5b6ef5' }) {
         <circle key={i} cx={x(s.date)} cy={y(s.maxWeight)} r="3.6" fill={color} />
       ))}
 
-      {/* future-projected dots only for upcoming milestones (skip achieved) */}
+      {/* future-projected dots */}
       {futureMs.map((m, i) => {
         const s = lineStyle(m)
         return (
           <g key={`m${i}`}>
-            <circle cx={x(m.projectedDate)} cy={y(m.weight)} r="6.5" fill="#fff"
+            <circle cx={x(m.projectedDate)} cy={y(m.weight)} r="6" fill="#fff"
               stroke={s.color} strokeWidth="2.4" />
-            <circle cx={x(m.projectedDate)} cy={y(m.weight)} r="3"
-              fill={s.color} />
-            <text x={x(m.projectedDate)} y={H - 10}
-              fontSize="10" fill={s.color} textAnchor="middle">
-              {new Date(m.projectedDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-            </text>
+            <circle cx={x(m.projectedDate)} cy={y(m.weight)} r="3" fill={s.color} />
           </g>
         )
       })}
 
-      {/* session date labels */}
-      {dates.length > 0 && (
-        <text x={x(dates[0])} y={H - 10} fontSize="10" fill="#8b90a3" textAnchor="middle">
-          {dates[0].toLocaleDateString([], { month: 'short', day: 'numeric' })}
-        </text>
-      )}
-      {dates.length > 1 && (
-        <text x={x(dates[dates.length - 1])} y={H - 10} fontSize="10" fill="#8b90a3" textAnchor="middle">
-          {dates[dates.length - 1].toLocaleDateString([], { month: 'short', day: 'numeric' })}
-        </text>
-      )}
+      {/* x-axis ticks (months / years) */}
+      {drawnTicks.map((t, i) => (
+        <g key={`x${i}`}>
+          <line x1={t.px} y1={H - P_B} x2={t.px} y2={H - P_B + 3}
+            stroke="#bfc4d6" strokeWidth="1" />
+          <text x={t.px} y={H - P_B + 16}
+            fontSize="10.5" fill="#8b90a3" textAnchor="middle">{t.label}</text>
+        </g>
+      ))}
     </svg>
   )
 }
