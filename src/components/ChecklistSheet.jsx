@@ -38,28 +38,61 @@ export default function ChecklistSheet({ event, day, onClose, onEdit }) {
   const { done, total } = completion(parsed, merged)
   const sub = cell('__sub__')
 
-  // ----- swipe-down to dismiss -----
+  // ----- swipe-down to dismiss (iOS-style)
+  // - Always tracks the gesture (drag from anywhere on the sheet, including over
+  //   scrolled content / buttons).
+  // - If the inner scroll area has scrollTop > 0, the scroll handles the gesture
+  //   normally. Once scrollTop === 0 and the finger keeps moving down, the sheet
+  //   itself starts dragging.
+  // - Snap back on release unless distance > 130px OR a quick downward flick
+  //   (velocity > 0.6 px/ms over the last segment).
   const sheetRef = useRef(null)
-  const drag = useRef({ y0: 0, dy: 0, active: false })
+  const bodyRef = useRef(null)
+  const drag = useRef({
+    y0: 0, lastY: 0, lastT: 0, dy: 0, v: 0, dragging: false, started: false
+  })
+
   function onTouchStart(e) {
-    const t = e.target
-    if (t && t.closest('input, textarea, select, button')) return
-    drag.current = { y0: e.touches[0].clientY, dy: 0, active: true }
+    const t = e.touches[0]
+    drag.current = {
+      y0: t.clientY, lastY: t.clientY, lastT: performance.now(),
+      dy: 0, v: 0, dragging: false, started: true
+    }
   }
   function onTouchMove(e) {
-    if (!drag.current.active) return
-    const dy = e.touches[0].clientY - drag.current.y0
-    if (dy > 0) {
-      drag.current.dy = dy
-      if (sheetRef.current) sheetRef.current.style.transform = `translateY(${dy}px)`
+    if (!drag.current.started) return
+    const y = e.touches[0].clientY
+    const now = performance.now()
+    const totalDy = y - drag.current.y0
+    drag.current.v = (y - drag.current.lastY) / Math.max(now - drag.current.lastT, 1)
+    drag.current.lastY = y
+    drag.current.lastT = now
+
+    const scrollTop = bodyRef.current?.scrollTop ?? 0
+    // Begin dragging the sheet only once we're already at the top AND moving down.
+    if (!drag.current.dragging && totalDy > 0 && scrollTop === 0) {
+      drag.current.dragging = true
+    }
+    if (drag.current.dragging) {
+      if (totalDy > 0) {
+        e.preventDefault()
+        drag.current.dy = totalDy
+        if (sheetRef.current) sheetRef.current.style.transform = `translateY(${totalDy}px)`
+      } else {
+        // dragged back up past start — release
+        drag.current.dragging = false
+        drag.current.dy = 0
+        if (sheetRef.current) sheetRef.current.style.transform = ''
+      }
     }
   }
   function onTouchEnd() {
-    if (!drag.current.active) return
-    const dy = drag.current.dy
-    drag.current.active = false
+    if (!drag.current.started) return
+    const { dy, v, dragging } = drag.current
+    drag.current = { y0: 0, lastY: 0, lastT: 0, dy: 0, v: 0, dragging: false, started: false }
+    if (!dragging) return
     if (sheetRef.current) sheetRef.current.style.transform = ''
-    if (dy > 110) onClose()
+    if (dy > 130 || v > 0.6) onClose()
   }
 
   // ----- routine swap -----
@@ -118,7 +151,7 @@ export default function ChecklistSheet({ event, day, onClose, onEdit }) {
           </div>
         )}
 
-        <div className="cl-body">
+        <div className="cl-body" ref={bodyRef}>
           {parsed.info.map((t, i) => <div className="cl-info" key={i}>{t}</div>)}
 
           {parsed.groups.map((g) => {

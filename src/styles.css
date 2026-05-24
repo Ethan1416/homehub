@@ -505,16 +505,15 @@ button { font: inherit; cursor: pointer; border: none; }
   color: var(--text); border-radius: 7px; padding: 7px 8px;
   font-size: 13px; text-align: center; min-width: 0; }
 .cs-main select { font-weight: 600; }
-.cs-extras { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 6px; align-items: center; }
+.cs-extras { display: grid; grid-template-columns: 1fr 96px; gap: 6px; align-items: center; }
 .cs-extras input {
   width: 100%; background: var(--panel); border: 1px solid var(--line);
   color: var(--text); border-radius: 7px; padding: 6px 8px;
   font-size: 12px; text-align: center; min-width: 0; }
 .cs-rest { position: relative; display: flex; align-items: center; }
-.cs-rest input { padding-right: 32px; }
-.cs-rest-suffix { position: absolute; right: 8px; font-size: 11px;
+.cs-rest input { padding-right: 26px; }
+.cs-rest-suffix { position: absolute; right: 6px; font-size: 10.5px;
   color: var(--muted); pointer-events: none; }
-.cs-extras { grid-template-columns: 1fr 1.4fr; }
 .cs-recollapse { background: transparent; border: 1px solid var(--line);
   color: var(--muted); width: 22px; height: 22px; border-radius: 50%;
   font-size: 14px; line-height: 1;
