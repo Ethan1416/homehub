@@ -135,46 +135,49 @@ function projectDate(weeks) {
   return d.toISOString().slice(0, 10)
 }
 
-// Multiple milestones for an exercise:
-//   - next small bump (+1 increment)
-//   - next level threshold (e.g. promotion to intermediate)
+// All milestones for an exercise: next +increment bump plus every level
+// (Novice/Intermediate/Advanced/Elite). Each entry has a status:
+//   'achieved'   — best already at/above this weight
+//   'next'       — the closest upcoming bump
+//   'upcoming'   — future level not yet reached
 export function milestonesFor(name, best, observedRate /* lb/week or null */) {
   const t = thresholds(name)
   const level = currentLevel(name, best)
   const inc = t.increment
-  // Use the user's observed rate if it's positive and reasonable, else level default.
   const defaultRate = weeklyRate(level, inc)
   let rate = defaultRate
   if (observedRate != null && observedRate > 0.05 && observedRate < 30) {
-    // Blend: weight observed more for advanced/elite (less variance), less for untrained
     const w = level === 'untrained' ? 0.3 : level === 'novice' ? 0.4 : 0.65
     rate = observedRate * w + defaultRate * (1 - w)
   }
-
+  const cur = best || 0
   const ms = []
+
+  // next +increment bump
   if (best != null) {
-    // Next +1 increment bump
     const bump = Math.ceil((best + 0.01) / inc) * inc
     ms.push({
       kind: 'bump', weight: bump, label: `+${inc} lb`,
-      weeks: Math.max(1, (bump - best) / rate),
+      status: 'next',
+      weeks: Math.max(0.5, (bump - best) / rate),
+      projectedDate: projectDate(Math.max(0.5, (bump - best) / rate))
     })
   }
-  // Next level threshold
-  const order = ['novice', 'intermediate', 'advanced', 'elite']
-  const idx = order.indexOf(level)
-  const nextKey = level === 'untrained' ? 'novice' : (idx >= 0 && idx < order.length - 1 ? order[idx + 1] : null)
-  if (nextKey && t[nextKey] != null) {
-    const tgt = t[nextKey]
-    const cur = best || 0
-    if (tgt > cur) {
+
+  // all four levels
+  for (const lk of ['novice', 'intermediate', 'advanced', 'elite']) {
+    const w = t[lk]; if (w == null) continue
+    if (w <= cur) {
+      ms.push({ kind: 'level', weight: w, label: lk, status: 'achieved' })
+    } else {
+      const weeks = Math.max(2, (w - cur) / rate)
       ms.push({
-        kind: 'level', weight: tgt, label: nextKey,
-        weeks: Math.max(2, (tgt - cur) / rate),
+        kind: 'level', weight: w, label: lk, status: 'upcoming',
+        weeks, projectedDate: projectDate(weeks)
       })
     }
   }
-  return ms.map((m) => ({ ...m, projectedDate: projectDate(m.weeks) }))
+  return ms
 }
 
 // ─── catalog + history (unchanged behaviour) ──────────────────────────────
