@@ -514,10 +514,31 @@ button { font: inherit; cursor: pointer; border: none; }
 .cs-rest input { padding-right: 32px; }
 .cs-rest-suffix { position: absolute; right: 8px; font-size: 11px;
   color: var(--muted); pointer-events: none; }
-.cs-applyall { background: var(--panel-2); border: 1px solid var(--line);
-  color: var(--muted); font-size: 11px; font-weight: 700;
-  padding: 4px 7px; border-radius: 7px; white-space: nowrap; }
-.cs-applyall:active { color: var(--accent); border-color: var(--accent); }
+.cs-extras { grid-template-columns: 1fr 1.4fr; }
+.cs-recollapse { background: transparent; border: 1px solid var(--line);
+  color: var(--muted); width: 22px; height: 22px; border-radius: 50%;
+  font-size: 14px; line-height: 1;
+  display: flex; align-items: center; justify-content: center; }
+.cs-recollapse:active { color: var(--accent); border-color: var(--accent); }
+
+/* "+ Add a set" button below the prescribed sets */
+.cl-add-set { width: 100%; background: transparent;
+  border: 1px dashed var(--line); color: var(--accent);
+  border-radius: 10px; padding: 8px; font-size: 12.5px; font-weight: 700;
+  margin-top: 2px; }
+.cl-add-set:active { background: rgba(91,110,245,.06); }
+
+/* whole-exercise collapsed bar (when every set is done) */
+.cl-ex-done { width: 100%; display: flex; align-items: center;
+  justify-content: space-between; padding: 12px 14px; border-radius: 12px;
+  margin-bottom: 10px;
+  background: rgba(47,179,128,.10); border: 1px solid rgba(47,179,128,.3);
+  text-align: left; }
+.cl-ex-done .cl-ex-name { font-size: 14px; font-weight: 700; color: #167551;
+  margin-bottom: 0; }
+.cl-ex-done .cs-tick { font-size: 18px; color: var(--good); font-weight: 800; }
+
+.cl-ex-name-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 
 /* collapsed set (after ✓) */
 .cl-set-mini { display: flex; align-items: center; justify-content: space-between;
