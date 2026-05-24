@@ -4,6 +4,7 @@ import { isConfigured } from '../supabaseClient.js'
 import EventModal from '../components/EventModal.jsx'
 import ChecklistSheet from '../components/ChecklistSheet.jsx'
 import RoutinePicker from '../components/RoutinePicker.jsx'
+import { useCurrentUser, setUser as setCurrentUser } from '../components/UserGate.jsx'
 import TasksTab from './tabs/TasksTab.jsx'
 import CalendarTab from './tabs/CalendarTab.jsx'
 import WorkoutTab from './tabs/WorkoutTab.jsx'
@@ -20,9 +21,10 @@ const TABS = [
 ]
 
 export default function PhoneView() {
+  const user = useCurrentUser() || 'ethan'
   const { events } = useEvents()
   const { statuses } = useClaudeStatus()
-  const streak = useStreak(events)
+  const streak = useStreak(events, user)
   const [selected, setSelected] = useState(new Date())
   const [weekBase, setWeekBase] = useState(new Date())
   const [filter, setFilter] = useState(null)
@@ -38,12 +40,13 @@ export default function PhoneView() {
       <div className="tab-content">
         {tab === 'tasks' && (
           <TasksTab
-            events={events} statuses={statuses} streak={streak}
+            events={events} statuses={statuses} streak={streak} user={user}
             selected={selected} setSelected={setSelected}
             weekBase={weekBase} setWeekBase={setWeekBase}
             filter={filter} setFilter={setFilter}
             openChecklist={(e) => setModal({ checklist: e })}
             openGymPicker={(day) => setModal({ gymPicker: day })}
+            switchUser={() => setCurrentUser(null)}
           />
         )}
         {tab === 'calendar' && (
@@ -51,13 +54,13 @@ export default function PhoneView() {
             switchToTasks={() => setTab('tasks')} />
         )}
         {tab === 'workout' && (
-          <WorkoutTab events={events}
+          <WorkoutTab events={events} user={user}
             focusedEventId={workoutFocus}
             clearFocus={() => setWorkoutFocus(null)}
             navReq={workoutNav} />
         )}
         {tab === 'claude' && <ClaudeTab />}
-        {tab === 'oura' && <OuraTab />}
+        {tab === 'oura' && <OuraTab user={user} />}
       </div>
 
       {tab === 'tasks' && (
@@ -75,7 +78,7 @@ export default function PhoneView() {
       </nav>
 
       {modal?.checklist && (
-        <ChecklistSheet event={modal.checklist} day={new Date(selected)}
+        <ChecklistSheet event={modal.checklist} day={new Date(selected)} user={user}
           onClose={() => setModal(null)}
           onEdit={() => setModal({ event: modal.checklist })}
           onOpenExercise={(ex) => {
@@ -85,7 +88,7 @@ export default function PhoneView() {
           }} />
       )}
       {modal?.gymPicker && (
-        <RoutinePicker day={new Date(modal.gymPicker)}
+        <RoutinePicker day={new Date(modal.gymPicker)} user={user}
           onClose={() => setModal(null)} />
       )}
       {(modal?.new || modal?.event) && (

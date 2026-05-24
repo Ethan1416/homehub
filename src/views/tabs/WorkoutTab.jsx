@@ -227,7 +227,7 @@ function ExerciseDetail({ ex, allRows, onBack }) {
   )
 }
 
-export default function WorkoutTab({ events, focusedEventId, clearFocus, navReq }) {
+export default function WorkoutTab({ events, user = 'ethan', focusedEventId, clearFocus, navReq }) {
   const [allRows, setAllRows] = useState([])
   const [open, setOpen] = useState(null) // exercise name (normalized) when detail open
   const focusedEvent = focusedEventId ? events.find((e) => e.id === focusedEventId) : null
@@ -244,12 +244,13 @@ export default function WorkoutTab({ events, focusedEventId, clearFocus, navReq 
       const since = new Date(); since.setDate(since.getDate() - 180)
       const { data } = await supabase
         .from('progress').select('*')
+        .eq('user_id', user)
         .gte('log_date', since.toISOString().slice(0, 10))
       if (!cancelled) setAllRows(data || [])
     }
     load()
     return () => { cancelled = true }
-  }, [])
+  }, [user])
 
   const catalog = useMemo(() => exerciseCatalog(events), [events])
   const filteredCatalog = useMemo(() => {

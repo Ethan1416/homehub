@@ -8,14 +8,14 @@ const dowOrder = (e) => {
 const dowName = (e) =>
   new Date(e.starts_at).toLocaleDateString([], { weekday: 'short' })
 
-export default function RoutinePicker({ day, onClose }) {
+export default function RoutinePicker({ day, user = 'ethan', onClose }) {
   const { events } = useEvents()
   const gymTemplates = events
     .filter((e) => e.type === 'gym' && e.recurrence === 'weekly')
     .sort((a, b) => dowOrder(a) - dowOrder(b))
 
   async function pick(eid) {
-    await setGymOverride(ymd(day), eid)
+    await setGymOverride(ymd(day), eid, user)
     onClose()
   }
 

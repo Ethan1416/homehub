@@ -18,10 +18,10 @@ const EFFORT_OPTS = [
 // "3. Hip thrust — 3 sets × 10–12 reps. Glutes." → "Hip thrust"
 const stripNum = (label) => label.replace(/^\d+\.\s*/, '').split('—')[0].trim()
 
-export default function ChecklistSheet({ event, day, onClose, onEdit, onOpenExercise }) {
+export default function ChecklistSheet({ event, day, user = 'ethan', onClose, onEdit, onOpenExercise }) {
   const parsed = parseEvent(event)
   const logDate = ymd(day)
-  const { byEvent } = useProgress(logDate)
+  const { byEvent } = useProgress(logDate, user)
   const remote = byEvent[event.id] || {}
 
   const [v, setV] = useState({})
@@ -32,7 +32,7 @@ export default function ChecklistSheet({ event, day, onClose, onEdit, onOpenExer
 
   const put = (key, patch) => {
     setV((s) => ({ ...s, [key]: { ...(s[key] || remote[key] || {}), ...patch } }))
-    saveProgress(event.id, logDate, key, patch)
+    saveProgress(event.id, logDate, key, patch, user)
   }
 
   const merged = { ...remote, ...v }
@@ -100,8 +100,8 @@ export default function ChecklistSheet({ event, day, onClose, onEdit, onOpenExer
   const allEvents = useEvents().events
   const [pickRoutine, setPickRoutine] = useState(false)
   const gymTemplates = allEvents.filter((e) => e.type === 'gym' && e.id !== event.id)
-  async function swap(toEventId) { await setGymOverride(logDate, toEventId); setPickRoutine(false); onClose() }
-  async function resetSwap()    { await clearGymOverride(logDate); setPickRoutine(false); onClose() }
+  async function swap(toEventId) { await setGymOverride(logDate, toEventId, user); setPickRoutine(false); onClose() }
+  async function resetSwap()    { await clearGymOverride(logDate, user); setPickRoutine(false); onClose() }
 
   // total sets to render = max(prescribed, anything already logged)
   function effectiveSetCount(g) {

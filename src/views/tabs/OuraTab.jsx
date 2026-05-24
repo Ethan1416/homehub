@@ -63,8 +63,8 @@ const hms = (s) => {
 const n = (x, suffix = '') => x == null ? '—' : `${Math.round(Number(x))}${suffix}`
 const t = (x) => x == null ? '—' : (Number(x) >= 0 ? '+' : '') + Number(x).toFixed(2) + '°C'
 
-export default function OuraTab() {
-  const rows = useHealth(14)
+export default function OuraTab({ user = 'ethan' }) {
+  const rows = useHealth(14, user)
   const today = rows[0]
 
   if (rows.length === 0) {

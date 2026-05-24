@@ -58,33 +58,34 @@ export function useClaudeStatus() {
   return { statuses }
 }
 
-// Per-occurrence progress for a given local date (YYYY-MM-DD).
+// Per-occurrence progress for a given local date (YYYY-MM-DD) scoped to user.
 // Returns byEvent[event_id][item_key] = row, plus a realtime subscription.
 let _chSeq = 0
-export function useProgress(logDate) {
+export function useProgress(logDate, userId = 'ethan') {
   const [byEvent, setByEvent] = useState({})
   const chanId = useRef(++_chSeq)
 
   const reload = useCallback(async () => {
     if (!isConfigured || !logDate) return
     const { data } = await supabase
-      .from('progress').select('*').eq('log_date', logDate)
+      .from('progress').select('*')
+      .eq('log_date', logDate).eq('user_id', userId)
     const m = {}
     for (const r of data || []) {
       ;(m[r.event_id] ||= {})[r.item_key] = r
     }
     setByEvent(m)
-  }, [logDate])
+  }, [logDate, userId])
 
   useEffect(() => {
     reload()
     if (!isConfigured) return
     const ch = supabase
-      .channel(`progress-${logDate}-${chanId.current}`)
+      .channel(`progress-${logDate}-${userId}-${chanId.current}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'progress' }, reload)
       .subscribe()
     return () => supabase.removeChannel(ch)
-  }, [reload, logDate])
+  }, [reload, logDate, userId])
 
   return { byEvent, reload }
 }
@@ -93,7 +94,7 @@ export function useProgress(logDate) {
 // completed (all items / all gym sets). Today gets a grace until end-of-day
 // (today being incomplete doesn't break the streak — yesterday determines it).
 // A day with no scheduled events is treated as a break.
-export function useStreak(events) {
+export function useStreak(events, userId = 'ethan') {
   const [streak, setStreak] = useState(0)
   const chanId = useRef(++_chSeq)
 
@@ -102,7 +103,8 @@ export function useStreak(events) {
     const since = new Date(); since.setDate(since.getDate() - 120)
     const sinceKey = since.toISOString().slice(0, 10)
     const { data } = await supabase
-      .from('progress').select('*').gte('log_date', sinceKey)
+      .from('progress').select('*')
+      .gte('log_date', sinceKey).eq('user_id', userId)
 
     // Bucket: byDate[ymd][event_id][item_key] = row
     const byDate = {}
@@ -128,7 +130,7 @@ export function useStreak(events) {
     let n = 0
     while (dayQualifies(d) && n < 400) { n++; d.setDate(d.getDate() - 1) }
     setStreak(n)
-  }, [events])
+  }, [events, userId])
 
   useEffect(() => {
     reload()
@@ -151,7 +153,7 @@ export function useStreak(events) {
 }
 
 // Last N days of Oura snapshots from health_daily (server-synced hourly).
-export function useHealth(days = 14) {
+export function useHealth(days = 14, userId = 'ethan') {
   const [rows, setRows] = useState([])
   const chanId = useRef(++_chSeq)
 
@@ -159,62 +161,62 @@ export function useHealth(days = 14) {
     if (!isConfigured) return
     const { data } = await supabase
       .from('health_daily').select('*')
+      .eq('user_id', userId)
       .order('day', { ascending: false }).limit(days)
     setRows(data || [])
-  }, [days])
+  }, [days, userId])
 
   useEffect(() => {
     reload()
     if (!isConfigured) return
     const ch = supabase
-      .channel(`health-${chanId.current}`)
+      .channel(`health-${userId}-${chanId.current}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'health_daily' }, reload)
       .subscribe()
-    // Also refresh every 5 minutes (cron runs hourly but UI feels live).
     const t = setInterval(reload, 5 * 60 * 1000)
     return () => { supabase.removeChannel(ch); clearInterval(t) }
-  }, [reload])
+  }, [reload, userId])
 
   return rows
 }
 
 // Per-day gym override: lets the user swap which gym routine is "active" today
 // without modifying the weekly templates. Map of YYYY-MM-DD -> event_id.
-export function useGymOverrides() {
+export function useGymOverrides(userId = 'ethan') {
   const [map, setMap] = useState({})
   const chanId = useRef(++_chSeq)
 
   const reload = useCallback(async () => {
     if (!isConfigured) return
-    const { data } = await supabase.from('gym_override').select('*')
+    const { data } = await supabase.from('gym_override').select('*').eq('user_id', userId)
     const m = {}
     for (const r of data || []) m[r.log_date] = r.event_id
     setMap(m)
-  }, [])
+  }, [userId])
 
   useEffect(() => {
     reload()
     if (!isConfigured) return
     const ch = supabase
-      .channel(`gymo-${chanId.current}`)
+      .channel(`gymo-${userId}-${chanId.current}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'gym_override' }, reload)
       .subscribe()
     return () => supabase.removeChannel(ch)
-  }, [reload])
+  }, [reload, userId])
 
   return map
 }
 
-export async function setGymOverride(logDate, eventId) {
+export async function setGymOverride(logDate, eventId, userId = 'ethan') {
   if (!isConfigured) return
   return supabase.from('gym_override').upsert(
-    { log_date: logDate, event_id: eventId, updated_at: new Date().toISOString() },
-    { onConflict: 'log_date' }
+    { log_date: logDate, event_id: eventId, user_id: userId, updated_at: new Date().toISOString() },
+    { onConflict: 'log_date,user_id' }
   )
 }
-export async function clearGymOverride(logDate) {
+export async function clearGymOverride(logDate, userId = 'ethan') {
   if (!isConfigured) return
-  return supabase.from('gym_override').delete().eq('log_date', logDate)
+  return supabase.from('gym_override').delete().eq('log_date', logDate).eq('user_id', userId)
 }
 
 // Ordered roadmap milestones.
@@ -242,11 +244,12 @@ export function useMilestones() {
   return rows
 }
 
-export async function saveProgress(eventId, logDate, itemKey, patch) {
+export async function saveProgress(eventId, logDate, itemKey, patch, userId = 'ethan') {
   if (!isConfigured) return
   return supabase.from('progress').upsert(
-    { event_id: eventId, log_date: logDate, item_key: itemKey, updated_at: new Date().toISOString(), ...patch },
-    { onConflict: 'event_id,log_date,item_key' }
+    { event_id: eventId, log_date: logDate, item_key: itemKey,
+      user_id: userId, updated_at: new Date().toISOString(), ...patch },
+    { onConflict: 'event_id,log_date,item_key,user_id' }
   )
 }
 

@@ -25,12 +25,13 @@ const weekOf = (d) => {
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export default function TasksTab({
-  events, statuses, streak,
+  events, statuses, streak, user,
   selected, setSelected, weekBase, setWeekBase,
-  filter, setFilter, openChecklist, openGymPicker
+  filter, setFilter, openChecklist, openGymPicker, switchUser
 }) {
-  const { byEvent } = useProgress(ymd(selected))
-  const overrides = useGymOverrides()
+  const { byEvent } = useProgress(ymd(selected), user)
+  const overrides = useGymOverrides(user)
+  const displayName = user === 'justin' ? 'Justin' : 'Ethan'
 
   const dayEvents = useMemo(() => {
     const overrideId = overrides[ymd(selected)]
@@ -75,12 +76,14 @@ export default function TasksTab({
       <div className="ph-top">
         <div className="ph-top-row">
           <div className="ph-top-text">
-            <div className="ph-top-greet">{greeting()}, Ethan</div>
+            <div className="ph-top-greet">{greeting()}, {displayName}</div>
             <div className="ph-top-stat">
               You have <span>{remaining} task{remaining === 1 ? '' : 's'}</span> {sameDay(selected, new Date()) ? 'today' : 'this day'}
             </div>
           </div>
           <div className="ph-top-side">
+            <button className="user-pill" onClick={switchUser}
+              title="Switch user">{user === 'justin' ? 'J' : 'E'}</button>
             <div className="streak-chip" title={`${streak}-day streak`}>
               🔥<b>{streak}</b>
             </div>
