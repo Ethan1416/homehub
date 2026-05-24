@@ -178,6 +178,45 @@ export function useHealth(days = 14) {
   return rows
 }
 
+// Per-day gym override: lets the user swap which gym routine is "active" today
+// without modifying the weekly templates. Map of YYYY-MM-DD -> event_id.
+export function useGymOverrides() {
+  const [map, setMap] = useState({})
+  const chanId = useRef(++_chSeq)
+
+  const reload = useCallback(async () => {
+    if (!isConfigured) return
+    const { data } = await supabase.from('gym_override').select('*')
+    const m = {}
+    for (const r of data || []) m[r.log_date] = r.event_id
+    setMap(m)
+  }, [])
+
+  useEffect(() => {
+    reload()
+    if (!isConfigured) return
+    const ch = supabase
+      .channel(`gymo-${chanId.current}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gym_override' }, reload)
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [reload])
+
+  return map
+}
+
+export async function setGymOverride(logDate, eventId) {
+  if (!isConfigured) return
+  return supabase.from('gym_override').upsert(
+    { log_date: logDate, event_id: eventId, updated_at: new Date().toISOString() },
+    { onConflict: 'log_date' }
+  )
+}
+export async function clearGymOverride(logDate) {
+  if (!isConfigured) return
+  return supabase.from('gym_override').delete().eq('log_date', logDate)
+}
+
 // Ordered roadmap milestones.
 export function useMilestones() {
   const [rows, setRows] = useState([])

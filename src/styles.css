@@ -477,21 +477,44 @@ button { font: inherit; cursor: pointer; border: none; }
   border: 1px solid var(--line); border-radius: 8px; padding: 9px 8px;
   font-size: 15px; text-align: center; }
 .cl-setrow .cl-chk { margin: 0 auto; }
-.cl-setrow { flex-wrap: wrap; row-gap: 6px; }
-.cl-effort { grid-column: 1 / -1; display: flex; gap: 6px;
-  margin: 2px 0 4px 44px; }
-.cl-setrow.maxed { background: rgba(245,90,46,.07); border-radius: 8px;
-  padding: 4px 6px; margin: -4px -6px; }
-.cl-setrow.could_do_more { background: rgba(91,110,245,.07); border-radius: 8px;
-  padding: 4px 6px; margin: -4px -6px; }
-.ef-btn { background: var(--panel); border: 1px solid var(--line);
-  color: var(--muted); font-size: 11px; font-weight: 700;
-  padding: 4px 9px; border-radius: 999px;
-  white-space: nowrap; letter-spacing: .2px; }
-.ef-btn.ef-max.on { background: rgba(245,90,46,.14); color: #d34a17;
-  border-color: rgba(245,90,46,.3); }
-.ef-btn.ef-more.on { background: rgba(91,110,245,.14); color: var(--accent);
-  border-color: rgba(91,110,245,.3); }
+
+/* set card with optional second/third rows */
+.cl-set { padding: 8px; border-radius: 10px; margin-bottom: 4px;
+  background: transparent; transition: background .12s; }
+.cl-set.warmup { background: rgba(124,156,255,.07); }
+.cl-set.easy { background: rgba(95,208,160,.06); }
+.cl-set.burn { background: rgba(245,160,45,.10); }
+.cl-set.high_effort { background: rgba(229,87,93,.10); }
+.cl-set.max { background: rgba(245,72,46,.13); }
+.cl-set.nothing { background: rgba(150,155,176,.07); }
+.cl-setextra { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 6px;
+  margin-top: 5px; padding-left: 44px; }
+.cl-setextra select, .cl-setextra input { width: 100%; background: var(--panel);
+  border: 1px solid var(--line); color: var(--text);
+  border-radius: 7px; padding: 6px 8px; font-size: 12px; text-align: center; }
+.cl-setextra select { font-weight: 600; }
+.cl-setnote { width: calc(100% - 44px); margin: 5px 0 0 44px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  border-radius: 7px; padding: 6px 9px; font-size: 12px; }
+
+/* swap picker */
+.cl-swap { margin-bottom: 12px; padding: 9px 13px; border-radius: 10px;
+  background: var(--panel-2); color: var(--accent); font-size: 13px;
+  font-weight: 700; width: 100%; text-align: left; }
+.cl-pick { margin-bottom: 12px; }
+.cl-pick-h { font-size: 13px; color: var(--muted); margin-bottom: 8px;
+  font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+.cl-pick-row { display: block; width: 100%; text-align: left;
+  background: var(--panel-2); border-radius: 12px; padding: 10px 13px;
+  margin-bottom: 7px; border: 1px solid var(--line); }
+.cl-pick-row b { display: block; font-size: 14px; font-weight: 700; }
+.cl-pick-row small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.cl-pick-row.reset { background: transparent; border-style: dashed; }
+.cl-pick-cancel { background: transparent; color: var(--muted); font-size: 13px;
+  padding: 8px; font-weight: 600; }
+
+/* let sheet animate transform for swipe-down */
+.sheet { transition: transform .18s ease; touch-action: pan-y; }
 
 /* event modal extras */
 .dow-row { display: flex; gap: 6px; }
