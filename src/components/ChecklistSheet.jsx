@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { parseEvent, completion, sessionSummary, EFFORT_LABELS } from '../lib/checklist.js'
+import { parseEvent, completion, defaultRestFor, EFFORT_LABELS } from '../lib/checklist.js'
 import { useProgress, saveProgress, setGymOverride, clearGymOverride } from '../lib/useData.js'
 import { useEvents } from '../lib/useData.js'
 import { ymd, fmtTime } from '../lib/date.js'
@@ -21,7 +21,8 @@ export default function ChecklistSheet({ event, day, onClose, onEdit }) {
   const remote = byEvent[event.id] || {}
 
   const [v, setV] = useState({})
-  useEffect(() => { setV({}) }, [logDate, event.id])
+  const [expanded, setExpanded] = useState({}) // explicit "show me again" for done sets
+  useEffect(() => { setV({}); setExpanded({}) }, [logDate, event.id])
   const cell = (k) => v[k] || remote[k] || {}
 
   const put = (key, patch) => {
@@ -31,16 +32,14 @@ export default function ChecklistSheet({ event, day, onClose, onEdit }) {
 
   const merged = { ...remote, ...v }
   const { done, total } = completion(parsed, merged)
-  const summary = parsed.kind === 'gym' ? sessionSummary(merged) : null
   const sub = cell('__sub__')
 
   // ----- swipe-down to dismiss -----
   const sheetRef = useRef(null)
   const drag = useRef({ y0: 0, dy: 0, active: false })
   function onTouchStart(e) {
-    // Only initiate drag from the top region of the sheet (handle/header area).
     const t = e.target
-    if (t && (t.closest('input, textarea, select, button'))) return
+    if (t && t.closest('input, textarea, select, button')) return
     drag.current = { y0: e.touches[0].clientY, dy: 0, active: true }
   }
   function onTouchMove(e) {
@@ -59,20 +58,24 @@ export default function ChecklistSheet({ event, day, onClose, onEdit }) {
     if (dy > 110) onClose()
   }
 
-  // ----- routine swap (gym only) -----
+  // ----- routine swap -----
   const allEvents = useEvents().events
   const [pickRoutine, setPickRoutine] = useState(false)
   const gymTemplates = allEvents.filter((e) => e.type === 'gym' && e.id !== event.id)
-
   async function swap(toEventId) {
     await setGymOverride(logDate, toEventId)
-    setPickRoutine(false)
-    onClose()
+    setPickRoutine(false); onClose()
   }
   async function resetSwap() {
     await clearGymOverride(logDate)
-    setPickRoutine(false)
-    onClose()
+    setPickRoutine(false); onClose()
+  }
+
+  // ----- apply a rest value to every set in an exercise -----
+  function applyRestToAll(g, value) {
+    for (let s = 0; s < g.sets; s++) {
+      put(`${g.key}#${s}`, { rest_seconds: value })
+    }
   }
 
   return (
@@ -95,24 +98,6 @@ export default function ChecklistSheet({ event, day, onClose, onEdit }) {
           <button className="cl-swap" onClick={() => setPickRoutine(true)}>
             Change routine for {day.toLocaleDateString([], { weekday: 'long' })} ⇄
           </button>
-        )}
-
-        {summary && summary.total > 0 && !pickRoutine && (
-          <div className="cl-sum">
-            <div className="cl-sum-row">
-              {summary.sortedEfforts.map(([k, n]) => (
-                <span key={k} className={`sum-pill sum-${k}`}>
-                  <b>{n}</b> {EFFORT_LABELS[k]}
-                </span>
-              ))}
-              {summary.total > 0 && (
-                <span className="sum-pill sum-total"><b>{summary.total}</b> sets</span>
-              )}
-            </div>
-            {summary.avgRest != null && (
-              <div className="cl-sum-rest">avg rest {summary.avgRest}s</div>
-            )}
-          </div>
         )}
 
         {pickRoutine && (
@@ -138,48 +123,80 @@ export default function ChecklistSheet({ event, day, onClose, onEdit }) {
           {parsed.groups.map((g) => g.sets > 0 ? (
             <div className="cl-ex" key={g.key}>
               <div className="cl-ex-name">{g.label}</div>
-              <div className="cl-sets">
-                <div className="cl-setrow cl-setrow-h">
-                  <span>Set</span><span>Weight</span><span>Reps</span><span>✓</span>
-                </div>
+              <div className="cl-sets-v2">
                 {Array.from({ length: g.sets }, (_, s) => {
                   const k = `${g.key}#${s}`
                   const c = cell(k)
+                  const isCollapsed = c.done && !expanded[k]
+                  const restPlaceholder = defaultRestFor(g.label)
+
+                  if (isCollapsed) {
+                    return (
+                      <button className="cl-set-mini" key={k}
+                        onClick={() => setExpanded((e) => ({ ...e, [k]: true }))}>
+                        <span className="cs-num">Set {s + 1}</span>
+                        <span className="cs-tick">✓</span>
+                      </button>
+                    )
+                  }
+
                   return (
-                    <div className={`cl-set ${c.effort || ''}`} key={k}>
-                      <div className="cl-setrow">
-                        <span className="cl-setn">{s + 1}</span>
-                        <input inputMode="decimal" placeholder="—" value={c.weight || ''}
-                          onChange={(e) => setV((st) => ({ ...st, [k]: { ...cell(k), weight: e.target.value } }))}
-                          onBlur={(e) => put(k, { weight: e.target.value })} />
-                        <input inputMode="numeric" placeholder="—" value={c.reps || ''}
-                          onChange={(e) => setV((st) => ({ ...st, [k]: { ...cell(k), reps: e.target.value } }))}
-                          onBlur={(e) => put(k, { reps: e.target.value })} />
-                        <button className={`cl-chk ${c.done ? 'on' : ''}`}
-                          onClick={() => put(k, { done: !c.done })}>{c.done ? '✓' : ''}</button>
+                    <div className={`cl-set2 ${c.effort || ''}`} key={k}>
+                      <div className="cs-left">
+                        <span className="cs-num">Set {s + 1}</span>
+                        <button className={`cs-check ${c.done ? 'on' : ''}`}
+                          onClick={() => {
+                            const newDone = !c.done
+                            put(k, { done: newDone })
+                            if (newDone) setExpanded((e) => ({ ...e, [k]: false }))
+                          }}>
+                          {c.done ? '✓' : ''}
+                        </button>
                       </div>
-                      <div className="cl-setextra">
-                        <select value={c.effort || ''}
-                          onChange={(e) => put(k, { effort: e.target.value || null })}>
-                          {EFFORT_OPTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                        </select>
-                        <input inputMode="numeric" placeholder="½ reps" value={c.half_reps || ''}
-                          onChange={(e) => setV((st) => ({ ...st, [k]: { ...cell(k), half_reps: e.target.value } }))}
-                          onBlur={(e) => put(k, { half_reps: e.target.value || null })} />
-                        <input inputMode="numeric" placeholder="rest (s)" value={c.rest_seconds ?? ''}
-                          onChange={(e) => setV((st) => ({ ...st, [k]: { ...cell(k), rest_seconds: e.target.value } }))}
-                          onBlur={(e) => put(k, { rest_seconds: e.target.value ? parseInt(e.target.value, 10) : null })} />
+                      <div className="cs-right">
+                        <div className="cs-main">
+                          <input inputMode="decimal" placeholder="weight" value={c.weight || ''}
+                            onChange={(e) => setV((st) => ({ ...st, [k]: { ...cell(k), weight: e.target.value } }))}
+                            onBlur={(e) => put(k, { weight: e.target.value })} />
+                          <input inputMode="numeric" placeholder="reps" value={c.reps || ''}
+                            onChange={(e) => setV((st) => ({ ...st, [k]: { ...cell(k), reps: e.target.value } }))}
+                            onBlur={(e) => put(k, { reps: e.target.value })} />
+                          <select value={c.effort || ''}
+                            onChange={(e) => put(k, { effort: e.target.value || null })}>
+                            {EFFORT_OPTS.map(([vv, l]) => <option key={vv} value={vv}>{l}</option>)}
+                          </select>
+                        </div>
+                        <div className="cs-extras">
+                          <input inputMode="numeric" placeholder="½ reps" value={c.half_reps || ''}
+                            onChange={(e) => setV((st) => ({ ...st, [k]: { ...cell(k), half_reps: e.target.value } }))}
+                            onBlur={(e) => put(k, { half_reps: e.target.value || null })} />
+                          <div className="cs-rest">
+                            <input inputMode="numeric" placeholder={String(restPlaceholder)}
+                              value={c.rest_seconds ?? ''}
+                              onChange={(e) => setV((st) => ({ ...st, [k]: { ...cell(k), rest_seconds: e.target.value } }))}
+                              onBlur={(e) => put(k, { rest_seconds: e.target.value ? parseInt(e.target.value, 10) : null })} />
+                            <span className="cs-rest-suffix">s rest</span>
+                          </div>
+                          <button className="cs-applyall"
+                            title="Apply this rest to all sets of this exercise"
+                            onClick={() => {
+                              const val = c.rest_seconds != null
+                                ? Number(c.rest_seconds)
+                                : restPlaceholder
+                              applyRestToAll(g, val)
+                            }}>↧ all</button>
+                        </div>
                       </div>
-                      {c.set_note !== undefined || c.effort ? (
-                        <input className="cl-setnote" placeholder="set note (optional)"
-                          value={c.set_note || ''}
-                          onChange={(e) => setV((st) => ({ ...st, [k]: { ...cell(k), set_note: e.target.value } }))}
-                          onBlur={(e) => put(k, { set_note: e.target.value || null })} />
-                      ) : null}
                     </div>
                   )
                 })}
               </div>
+
+              {/* one note for the whole exercise */}
+              <input className="cl-ex-note" placeholder={`Notes on ${stripNum(g.label)} (optional)`}
+                value={cell(g.key).note || ''}
+                onChange={(e) => setV((s) => ({ ...s, [g.key]: { ...cell(g.key), note: e.target.value } }))}
+                onBlur={(e) => put(g.key, { note: e.target.value || null })} />
             </div>
           ) : (
             <button className={`cl-item ${cell(g.key).done ? 'on' : ''}`} key={g.key}
@@ -207,4 +224,9 @@ export default function ChecklistSheet({ event, day, onClose, onEdit }) {
       </div>
     </div>
   )
+}
+
+// "3. Hip thrust — 3 sets × 10–12 reps. Glutes." → "Hip thrust"
+function stripNum(label) {
+  return label.replace(/^\d+\.\s*/, '').split('—')[0].trim()
 }

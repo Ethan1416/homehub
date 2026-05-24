@@ -478,6 +478,60 @@ button { font: inherit; cursor: pointer; border: none; }
   font-size: 15px; text-align: center; }
 .cl-setrow .cl-chk { margin: 0 auto; }
 
+/* ---- new compact set layout (v2) ---- */
+.cl-sets-v2 { display: flex; flex-direction: column; gap: 7px; margin: 8px 0 10px; }
+.cl-set2 { display: grid; grid-template-columns: 56px 1fr; gap: 10px;
+  padding: 9px 10px; border-radius: 10px; align-items: center;
+  background: transparent; transition: background .12s; }
+.cl-set2.warmup { background: rgba(124,156,255,.07); }
+.cl-set2.easy { background: rgba(95,208,160,.06); }
+.cl-set2.burn { background: rgba(245,160,45,.10); }
+.cl-set2.high_effort { background: rgba(229,87,93,.10); }
+.cl-set2.max { background: rgba(245,72,46,.13); }
+.cl-set2.nothing { background: rgba(150,155,176,.07); }
+.cs-left { display: flex; flex-direction: column; align-items: center;
+  gap: 6px; min-width: 0; }
+.cs-num { font-size: 11px; color: var(--muted); font-weight: 700;
+  letter-spacing: .3px; }
+.cs-check { width: 30px; height: 30px; border-radius: 8px;
+  border: 2px solid var(--line); background: transparent;
+  color: var(--good); font-weight: 800; font-size: 15px;
+  display: flex; align-items: center; justify-content: center; }
+.cs-check.on { border-color: var(--good); background: rgba(95,208,160,.15); }
+.cs-right { min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.cs-main { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 6px; }
+.cs-main input, .cs-main select {
+  width: 100%; background: var(--panel); border: 1px solid var(--line);
+  color: var(--text); border-radius: 7px; padding: 7px 8px;
+  font-size: 13px; text-align: center; min-width: 0; }
+.cs-main select { font-weight: 600; }
+.cs-extras { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 6px; align-items: center; }
+.cs-extras input {
+  width: 100%; background: var(--panel); border: 1px solid var(--line);
+  color: var(--text); border-radius: 7px; padding: 6px 8px;
+  font-size: 12px; text-align: center; min-width: 0; }
+.cs-rest { position: relative; display: flex; align-items: center; }
+.cs-rest input { padding-right: 32px; }
+.cs-rest-suffix { position: absolute; right: 8px; font-size: 11px;
+  color: var(--muted); pointer-events: none; }
+.cs-applyall { background: var(--panel-2); border: 1px solid var(--line);
+  color: var(--muted); font-size: 11px; font-weight: 700;
+  padding: 4px 7px; border-radius: 7px; white-space: nowrap; }
+.cs-applyall:active { color: var(--accent); border-color: var(--accent); }
+
+/* collapsed set (after ✓) */
+.cl-set-mini { display: flex; align-items: center; justify-content: space-between;
+  width: 100%; padding: 7px 12px; border-radius: 10px;
+  background: rgba(95,208,160,.08); border: 1px dashed rgba(95,208,160,.35);
+  text-align: left; }
+.cl-set-mini .cs-num { font-size: 12px; color: var(--text); font-weight: 700; }
+.cl-set-mini .cs-tick { font-size: 14px; color: var(--good); font-weight: 800; }
+
+/* one note per exercise (replaces per-set note) */
+.cl-ex-note { width: 100%; margin-top: 8px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  border-radius: 8px; padding: 8px 10px; font-size: 12.5px; }
+
 /* set card with optional second/third rows */
 .cl-set { padding: 8px; border-radius: 10px; margin-bottom: 4px;
   background: transparent; transition: background .12s; }

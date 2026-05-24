@@ -73,6 +73,38 @@ export function parseEvent(ev) {
   return { kind: 'simple', info: [], groups: [{ key: '__done__', label: ev.title, sets: 0 }], total: 1 }
 }
 
+// Researched default rest seconds per exercise. Pulldown/press compounds take
+// longer; small isolations and core work need less. Used as a placeholder in the
+// rest input — the user can override per-set or copy to every set of an exercise.
+const REST_RULES = [
+  [/overhead\s+press|seated\s+(?:db|machine)\s+press/i, 180],
+  [/incline\s+press|flat\s+press|decline\s+press|barbell\s+bench|bench\s+press/i, 180],
+  [/hip\s+thrust/i, 120],
+  [/lat\s+pulldown|pull-?up|assisted\s+pull/i, 120],
+  [/chest-?supported\s+row|incline-?bench\s+db|t-?bar\s+row/i, 120],
+  [/seated\s+cable\s+row/i, 90],
+  [/leg\s+extension|leg\s+curl|leg\s+press/i, 90],
+  [/incline\s+db\s+curl|preacher\s+curl|overhead\s+(?:triceps?\s+)?extension/i, 60],
+  [/cable\s+fly|straight-?arm\s+pulldown|lateral\s+raise|rear\s+delt|reverse\s+pec/i, 60],
+  [/cable\s+curl|pushdown/i, 60],
+  [/hip\s+adduction|hip\s+abduction/i, 60],
+  [/seated\s+calf|calf\s+raise|calf\s+press/i, 60],
+  [/hanging\s+leg\s+raise|cable\s+crunch|ab\s+wheel/i, 45],
+  [/plank|pallof/i, 45]
+]
+export function defaultRestFor(label) {
+  for (const [re, s] of REST_RULES) if (re.test(label)) return s
+  const m = label.match(/×\s*(\d+)/)
+  if (m) {
+    const r = parseInt(m[1], 10)
+    if (r <= 8) return 180
+    if (r <= 10) return 120
+    if (r <= 12) return 90
+    return 60
+  }
+  return 90
+}
+
 // Effort label order, most intense → least; used for stable display.
 export const EFFORT_ORDER = ['max', 'high_effort', 'burn', 'easy', 'warmup', 'nothing']
 export const EFFORT_LABELS = {
