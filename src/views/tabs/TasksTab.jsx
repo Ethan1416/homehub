@@ -87,22 +87,6 @@ export default function TasksTab({
           </div>
         </div>
 
-        <div className="ph-pills">
-          <div className="pill streak-pill">
-            <b>{streak}</b><span>🔥 Streak</span>
-          </div>
-          {[
-            ['todo', 'To-Do', '#ff8b8b'],
-            ['progress', 'Progress', '#ffce6e'],
-            ['done', 'Done', '#6ee0a4']
-          ].map(([k, label, c]) => (
-            <button key={k} className={`pill ${filter === k ? 'on' : ''}`}
-              style={{ '--pc': c }}
-              onClick={() => setFilter(filter === k ? null : k)}>
-              <b>{counts[k]}</b><span>{label}</span>
-            </button>
-          ))}
-        </div>
       </div>
 
       <div className="ph-week">

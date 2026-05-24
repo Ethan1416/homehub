@@ -128,6 +128,36 @@ body {
   margin-left: auto; padding-left: 6px; }
 .cl-row-when .cl-val { color: var(--muted); font-size: 12px; font-weight: 600; }
 
+/* ---- workout tab ---- */
+.wo-row { width: 100%; display: flex; justify-content: space-between;
+  align-items: center; gap: 12px; padding: 14px 16px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  margin-bottom: 8px; text-align: left;
+  transition: transform .08s; }
+.wo-row:active { transform: scale(.99); }
+.wo-row-l { min-width: 0; }
+.wo-row-l b { display: block; font-size: 15px; font-weight: 700;
+  letter-spacing: -.2px; }
+.wo-row-l small { display: block; font-size: 11.5px; color: var(--muted);
+  margin-top: 3px; font-weight: 600; }
+.wo-row-r { display: flex; align-items: center; gap: 8px;
+  color: var(--muted); }
+.wo-tgt { font-size: 11px; font-weight: 800; color: #e5575d;
+  background: rgba(229,87,93,.10); padding: 3px 8px; border-radius: 999px;
+  white-space: nowrap; }
+
+.wo-card { background: var(--panel); border: 1px solid var(--line);
+  border-radius: 16px; padding: 14px 16px; margin-bottom: 12px;
+  box-shadow: var(--shadow); }
+.wo-card-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.wo-card-h small { font-size: 11px; color: var(--muted);
+  font-weight: 700; text-transform: uppercase; letter-spacing: .6px; }
+.wo-card-h b { font-size: 15px; font-weight: 800; letter-spacing: -.2px; }
+.wo-card-sub { font-size: 12.5px; color: var(--muted); margin-top: 4px;
+  font-weight: 600; }
+.wo-chart { width: 100%; height: auto; margin-top: 10px;
+  display: block; }
+
 /* ---- machine detail view ---- */
 .back-btn { background: transparent; color: var(--accent); font-weight: 700;
   font-size: 14px; padding: 4px 0 12px; }

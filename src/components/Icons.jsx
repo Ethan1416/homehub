@@ -38,6 +38,24 @@ export function IconCalendar({ active }) {
   )
 }
 
+export function IconWorkout({ active }) {
+  // dumbbell glyph
+  return (
+    <svg width="28" height="26" viewBox="0 0 28 24" {...S}
+      strokeWidth={active ? 2.2 : 1.8}>
+      <rect x="2" y="9" width="3.5" height="6" rx="1"
+        fill={active ? 'currentColor' : 'none'} />
+      <rect x="22.5" y="9" width="3.5" height="6" rx="1"
+        fill={active ? 'currentColor' : 'none'} />
+      <rect x="5.5" y="7" width="3" height="10" rx="1"
+        fill={active ? 'currentColor' : 'none'} />
+      <rect x="19.5" y="7" width="3" height="10" rx="1"
+        fill={active ? 'currentColor' : 'none'} />
+      <line x1="8.5" y1="12" x2="19.5" y2="12" />
+    </svg>
+  )
+}
+
 export function IconClaude({ active }) {
   // Code brackets — represents Claude Code activity
   return (
