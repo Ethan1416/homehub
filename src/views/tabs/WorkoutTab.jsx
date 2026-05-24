@@ -161,6 +161,9 @@ function ExerciseChart({ series, milestones, color = '#5b6ef5' }) {
 function ExerciseDetail({ ex, allRows, onBack }) {
   const { series, best, observedRate } = exerciseHistory(ex, allRows)
   const milestones = milestonesFor(ex.name, best, observedRate)
+  const upcoming = milestones
+    .filter((m) => m.status !== 'achieved')
+    .sort((a, b) => a.weight - b.weight)
   const level = currentLevel(ex.name, best)
   const last = series[series.length - 1]
 
@@ -169,18 +172,18 @@ function ExerciseDetail({ ex, allRows, onBack }) {
       <button className="back-btn" onClick={onBack}>‹ Back</button>
       <div className="md-hero">
         <div className="md-name">{ex.display}</div>
+        <div className="md-status">
+          Your status: <b>{level}</b>
+        </div>
         <div className="md-state">
-          {best > 0 ? `Best: ${best} lb` : 'No history yet'}
-        </div>
-        <div className="md-when">
-          Level: <b style={{ textTransform: 'capitalize', color: 'var(--accent)' }}>{level}</b>
-          {observedRate != null && observedRate > 0 && (
-            <>{' '}· your rate: ~{observedRate.toFixed(1)} lb/week</>
-          )}
+          {best > 0 ? `Best ${best} lb` : 'No history yet'}
           {last && (
-            <>{' '}· last {last.maxWeight} × {last.maxReps} ({new Date(last.date).toLocaleDateString([], { month: 'short', day: 'numeric' })})</>
+            <> · last {last.maxWeight} × {last.maxReps} on {new Date(last.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}</>
           )}
         </div>
+        {observedRate != null && observedRate > 0 && (
+          <div className="md-when">Your rate: ~{observedRate.toFixed(1)} lb / week</div>
+        )}
       </div>
 
       <div className="wo-card">
@@ -192,28 +195,23 @@ function ExerciseDetail({ ex, allRows, onBack }) {
       </div>
 
       <div className="wo-mlist">
-        {milestones.map((m, i) => {
-          const achieved = m.status === 'achieved'
+        {upcoming.map((m, i) => {
           const isBump = m.kind === 'bump'
-          const color = achieved ? '#9ca3b4' : isBump ? '#e5575d' : '#a13b3f'
+          const color = isBump ? '#e5575d' : '#a13b3f'
           const heading = isBump
             ? `Next +${m.label.replace(' lb', '')} bump`
             : m.label
           return (
-            <div className={`wo-mrow ${achieved ? 'achieved' : ''}`} key={i}>
+            <div className="wo-mrow" key={i}>
               <div className="wo-mrow-l">
-                <small style={{ color }}>{heading}{achieved && ' ✓'}</small>
+                <small style={{ color }}>{heading}</small>
                 <b style={{ color }}>{m.weight} lb</b>
               </div>
               <div className="wo-mrow-r">
-                {achieved
-                  ? <span className="wo-mdate">already there</span>
-                  : <>
-                      <span className="wo-mdate">{fmtDuration(m.weeks)}</span>
-                      <span className="wo-mdate dim">
-                        {new Date(m.projectedDate).toLocaleDateString([], { month: 'short', year: 'numeric' })}
-                      </span>
-                    </>}
+                <span className="wo-mdate">{fmtDuration(m.weeks)}</span>
+                <span className="wo-mdate dim">
+                  {new Date(m.projectedDate).toLocaleDateString([], { month: 'short', year: 'numeric' })}
+                </span>
               </div>
             </div>
           )

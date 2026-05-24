@@ -197,6 +197,12 @@ body {
 .md-hero-top { display: flex; align-items: center; gap: 12px; }
 .md-hero .bigdot { width: 14px; height: 14px; }
 .md-name { font-size: 20px; font-weight: 800; letter-spacing: -.3px; }
+.md-status { font-size: 14px; color: var(--muted); margin-top: 8px;
+  font-weight: 600; }
+.md-status b { color: var(--accent); font-weight: 800;
+  text-transform: capitalize; font-size: 17px;
+  padding: 2px 10px; border-radius: 999px;
+  background: rgba(91,110,245,.10); margin-left: 4px; }
 .md-state { font-size: 30px; font-weight: 800; letter-spacing: -.5px;
   margin-top: 12px; }
 .md-hero.on .md-state { color: #2fb380; }
