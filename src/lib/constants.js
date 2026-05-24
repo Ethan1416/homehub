@@ -12,3 +12,12 @@ export const MACHINES = {
 
 export const ownerColor = (owner) => (PEOPLE[owner] || PEOPLE.shared).color
 export const ownerLabel = (owner) => (PEOPLE[owner] || PEOPLE.shared).label
+
+// Lifter profile (from Oura account). Drives strength benchmark scaling.
+export const PROFILE = {
+  bodyweight_kg: 74.8,
+  height_cm: 180,
+  age: 27,
+  sex: 'male'
+}
+export const PROFILE_BW_LB = PROFILE.bodyweight_kg * 2.20462

@@ -1,81 +1,83 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase, isConfigured } from '../../supabaseClient.js'
-import { exerciseCatalog, exerciseHistory, nextMilestone, milestoneIncrement, projectMilestoneDate } from '../../lib/workouts.js'
+import { exerciseCatalog, exerciseHistory, nextMilestone, milestoneIncrement, milestonesFor, currentLevel } from '../../lib/workouts.js'
+import { PROFILE_BW_LB } from '../../lib/constants.js'
 
-function ExerciseChart({ series, target, projectedDate, color = '#5b6ef5' }) {
-  if (series.length === 0 && target == null) return null
-  const W = 600, H = 200, P = 28
+function ExerciseChart({ series, milestones, color = '#5b6ef5' }) {
+  if (series.length === 0 && (!milestones || milestones.length === 0)) return null
+  const W = 600, H = 220, P = 30
   const today = new Date(); today.setHours(0, 0, 0, 0)
-  // assemble x-domain: min(first session, today-30d) → max(today, projected)
   const dates = series.map((s) => new Date(s.date))
-  const projDt = projectedDate ? new Date(projectedDate) : null
+  const mDts = (milestones || []).map((m) => new Date(m.projectedDate))
   const minDate = dates.length ? new Date(Math.min(...dates.map((d) => d.getTime()))) : today
-  const maxDate = projDt ? projDt : (dates.length ? new Date(Math.max(...dates.map((d) => d.getTime()), today.getTime())) : today)
-  if (maxDate.getTime() === minDate.getTime()) maxDate.setDate(maxDate.getDate() + 7)
-  const minY = Math.min(...series.map((s) => s.maxWeight), target || Infinity, Infinity)
-  const maxY = Math.max(...series.map((s) => s.maxWeight), target || 0, 0)
-  const yLo = minY === Infinity ? 0 : minY * 0.9
-  const yHi = (maxY || 100) * 1.1
+  let maxDate = today
+  for (const d of mDts) if (d > maxDate) maxDate = d
+  if (dates.length) {
+    const ld = dates[dates.length - 1]; if (ld > maxDate) maxDate = ld
+  }
+  if (maxDate.getTime() === minDate.getTime()) maxDate.setDate(maxDate.getDate() + 14)
+  const maxTgt = (milestones || []).reduce((m, x) => Math.max(m, x.weight), 0)
+  const allW = series.map((s) => s.maxWeight)
+  const yLo = (allW.length ? Math.min(...allW) : 0) * 0.85
+  const yHi = Math.max(maxTgt, ...allW, 0) * 1.12 || 100
   const x = (d) => P + ((new Date(d) - minDate) / (maxDate - minDate)) * (W - 2 * P)
   const y = (val) => H - P - ((val - yLo) / Math.max(yHi - yLo, 1)) * (H - 2 * P)
-
   const pts = series.map((s) => `${x(s.date).toFixed(1)},${y(s.maxWeight).toFixed(1)}`).join(' ')
-  const tx = projDt ? x(projDt) : null
-  const ty = target ? y(target) : null
-
-  // sparse x-axis labels: first, last, projected
-  const labels = []
-  if (dates.length) labels.push({ d: minDate, t: minDate.toLocaleDateString([], { month: 'short', day: 'numeric' }) })
-  if (dates.length > 1) labels.push({ d: dates[dates.length - 1], t: dates[dates.length - 1].toLocaleDateString([], { month: 'short', day: 'numeric' }) })
-  if (projDt) labels.push({ d: projDt, t: projDt.toLocaleDateString([], { month: 'short', day: 'numeric' }) })
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="wo-chart" preserveAspectRatio="xMidYMid meet">
-      {/* y baseline */}
       <line x1={P} y1={H - P} x2={W - P} y2={H - P} stroke="#dde0eb" strokeWidth="1" />
-      {/* target horizontal line */}
-      {target && (
-        <line x1={P} y1={ty} x2={W - P} y2={ty} stroke="#e5575d" strokeDasharray="4 5" strokeWidth="1.4" />
-      )}
-      {/* path */}
+      {/* horizontal milestone lines */}
+      {(milestones || []).map((m, i) => (
+        <line key={`l${i}`} x1={P} y1={y(m.weight)} x2={W - P} y2={y(m.weight)}
+          stroke={m.kind === 'level' ? '#a13b3f' : '#e5575d'}
+          strokeDasharray={m.kind === 'level' ? '6 6' : '4 5'}
+          strokeWidth="1.4" />
+      ))}
       {series.length >= 2 && (
         <polyline points={pts} fill="none" stroke={color} strokeWidth="2.5"
           strokeLinecap="round" strokeLinejoin="round" />
       )}
-      {/* session dots */}
       {series.map((s, i) => (
         <circle key={i} cx={x(s.date)} cy={y(s.maxWeight)} r="3.6" fill={color} />
       ))}
-      {/* future target red dot */}
-      {target && projDt && (
-        <>
-          <circle cx={tx} cy={ty} r="6.5" fill="#fff" stroke="#e5575d" strokeWidth="2.5" />
-          <circle cx={tx} cy={ty} r="3" fill="#e5575d" />
-        </>
-      )}
-      {/* x labels */}
-      {labels.map((l, i) => (
-        <text key={i} x={x(l.d)} y={H - 8} fontSize="11"
-          fill="#8b90a3" textAnchor="middle">{l.t}</text>
+      {/* future milestone dots */}
+      {(milestones || []).map((m, i) => (
+        <g key={`m${i}`}>
+          <circle cx={x(m.projectedDate)} cy={y(m.weight)} r="7" fill="#fff"
+            stroke={m.kind === 'level' ? '#a13b3f' : '#e5575d'} strokeWidth="2.6" />
+          <circle cx={x(m.projectedDate)} cy={y(m.weight)} r="3.2"
+            fill={m.kind === 'level' ? '#a13b3f' : '#e5575d'} />
+          <text x={x(m.projectedDate)} y={y(m.weight) - 12} fontSize="11"
+            fill={m.kind === 'level' ? '#a13b3f' : '#e5575d'} fontWeight="700"
+            textAnchor="middle">{m.weight}</text>
+        </g>
       ))}
-      {/* y labels for current best + target */}
-      {series.length > 0 && (
-        <text x={P} y={y(series[series.length - 1].maxWeight) - 6} fontSize="11"
-          fill={color} fontWeight="700">{series[series.length - 1].maxWeight}</text>
+      {/* dates */}
+      {dates.length > 0 && (
+        <text x={x(dates[0])} y={H - 10} fontSize="11" fill="#8b90a3" textAnchor="middle">
+          {dates[0].toLocaleDateString([], { month: 'short', day: 'numeric' })}
+        </text>
       )}
-      {target && (
-        <text x={W - P} y={ty - 5} fontSize="11"
-          fill="#e5575d" fontWeight="700" textAnchor="end">{target}</text>
+      {dates.length > 1 && (
+        <text x={x(dates[dates.length - 1])} y={H - 10} fontSize="11" fill="#8b90a3" textAnchor="middle">
+          {dates[dates.length - 1].toLocaleDateString([], { month: 'short', day: 'numeric' })}
+        </text>
       )}
+      {(milestones || []).map((m, i) => (
+        <text key={`d${i}`} x={x(m.projectedDate)} y={H - 10} fontSize="10.5"
+          fill={m.kind === 'level' ? '#a13b3f' : '#e5575d'} textAnchor="middle">
+          {new Date(m.projectedDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+        </text>
+      ))}
     </svg>
   )
 }
 
 function ExerciseDetail({ ex, allRows, onBack }) {
-  const { series, best } = exerciseHistory(ex, allRows)
-  const target = nextMilestone(best, ex.name)
-  const projDate = projectMilestoneDate(series, target)
-  const inc = milestoneIncrement(ex.name)
+  const { series, best, observedRate } = exerciseHistory(ex, allRows)
+  const milestones = milestonesFor(ex.name, best, observedRate)
+  const level = currentLevel(ex.name, best)
   const last = series[series.length - 1]
 
   return (
@@ -86,38 +88,42 @@ function ExerciseDetail({ ex, allRows, onBack }) {
         <div className="md-state">
           {best > 0 ? `Best: ${best} lb` : 'No history yet'}
         </div>
-        {last && (
-          <div className="md-when">
-            Last session: {last.maxWeight} × {last.maxReps} on {new Date(last.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
-          </div>
-        )}
+        <div className="md-when">
+          Level: <b style={{ textTransform: 'capitalize', color: 'var(--accent)' }}>{level}</b>
+          {observedRate != null && observedRate > 0 && (
+            <>{' '}· your rate: ~{observedRate.toFixed(1)} lb/week</>
+          )}
+          {last && (
+            <>{' '}· last {last.maxWeight} × {last.maxReps} ({new Date(last.date).toLocaleDateString([], { month: 'short', day: 'numeric' })})</>
+          )}
+        </div>
       </div>
 
-      <div className="wo-card">
-        <div className="wo-card-h">
-          <small>Next milestone</small>
-          <b style={{ color: '#e5575d' }}>
-            {target ? `${target} lb (+${inc})` : `Log a set to set a target`}
-          </b>
-        </div>
-        {target && projDate && (
-          <div className="wo-card-sub">
-            Projected: {new Date(projDate).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+      {milestones.map((m, i) => (
+        <div className="wo-card" key={i}>
+          <div className="wo-card-h">
+            <small>{m.kind === 'level' ? `Promote to ${m.label}` : `Next +${m.label.replace(' lb','')} bump`}</small>
+            <b style={{ color: m.kind === 'level' ? '#a13b3f' : '#e5575d' }}>{m.weight} lb</b>
           </div>
-        )}
-      </div>
+          <div className="wo-card-sub">
+            ~{Math.round(m.weeks)} week{Math.round(m.weeks) === 1 ? '' : 's'} ·
+            projected {new Date(m.projectedDate).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}
+          </div>
+        </div>
+      ))}
 
       <div className="wo-card">
         <div className="wo-card-h">
           <small>Progression</small>
-          <b>{series.length} sessions</b>
+          <b>{series.length} session{series.length === 1 ? '' : 's'}</b>
         </div>
-        <ExerciseChart series={series} target={target} projectedDate={projDate} />
+        <ExerciseChart series={series} milestones={milestones} />
       </div>
 
       <p className="cal-hint">
-        Sessions plotted by max weight. Red dashed line = next +{inc} lb milestone;
-        red dot = projected date based on your rate of progress.
+        Standards are bodyweight-scaled for {Math.round(PROFILE_BW_LB)} lb male, 27 yo.
+        Light red dot = next small bump · darker red dot = next level threshold.
+        Projection blends your observed rate with level-typical gains.
       </p>
     </>
   )

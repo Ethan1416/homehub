@@ -138,16 +138,6 @@ export default function TasksTab({
                     <span style={{ color: p.bar }}>{status === 'done' ? '✓ Done' : `${done}/${total}`}</span>
                   </div>
                 )}
-                {summary && summary.total > 0 && (
-                  <div className="task-sum">
-                    {summary.sortedEfforts.map(([k, n]) => (
-                      <span key={k} className={`tsum tsum-${k}`}>{n} {EFFORT_LABELS[k]}</span>
-                    ))}
-                    {summary.avgRest != null && (
-                      <span className="tsum tsum-rest">{summary.avgRest}s rest</span>
-                    )}
-                  </div>
-                )}
               </button>
             </div>
           )
