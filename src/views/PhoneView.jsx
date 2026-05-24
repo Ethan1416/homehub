@@ -3,6 +3,7 @@ import { useEvents, useClaudeStatus, useStreak } from '../lib/useData.js'
 import { isConfigured } from '../supabaseClient.js'
 import EventModal from '../components/EventModal.jsx'
 import ChecklistSheet from '../components/ChecklistSheet.jsx'
+import RoutinePicker from '../components/RoutinePicker.jsx'
 import TasksTab from './tabs/TasksTab.jsx'
 import CalendarTab from './tabs/CalendarTab.jsx'
 import ClaudeTab from './tabs/ClaudeTab.jsx'
@@ -38,6 +39,7 @@ export default function PhoneView() {
             weekBase={weekBase} setWeekBase={setWeekBase}
             filter={filter} setFilter={setFilter}
             openChecklist={(e) => setModal({ checklist: e })}
+            openGymPicker={(day) => setModal({ gymPicker: day })}
           />
         )}
         {tab === 'calendar' && (
@@ -66,6 +68,10 @@ export default function PhoneView() {
         <ChecklistSheet event={modal.checklist} day={new Date(selected)}
           onClose={() => setModal(null)}
           onEdit={() => setModal({ event: modal.checklist })} />
+      )}
+      {modal?.gymPicker && (
+        <RoutinePicker day={new Date(modal.gymPicker)}
+          onClose={() => setModal(null)} />
       )}
       {(modal?.new || modal?.event) && (
         <EventModal event={modal.event} defaultDate={new Date(selected)}

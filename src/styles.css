@@ -497,6 +497,16 @@ button { font: inherit; cursor: pointer; border: none; }
   background: var(--panel); border: 1px solid var(--line); color: var(--text);
   border-radius: 7px; padding: 6px 9px; font-size: 12px; }
 
+/* rest-day add-gym CTA */
+.rest-add { width: 100%; text-align: left; display: flex;
+  align-items: baseline; gap: 8px; padding: 14px 16px;
+  background: rgba(91,110,245,.08); border: 1px dashed rgba(91,110,245,.35);
+  border-radius: 14px; color: var(--text); font-size: 14px;
+  margin-bottom: 14px; transition: background .12s; }
+.rest-add:active { background: rgba(91,110,245,.14); }
+.rest-add span { color: var(--muted); font-weight: 600; }
+.rest-add b { color: var(--accent); font-weight: 800; }
+
 /* session summary */
 .cl-sum { background: var(--panel-2); border-radius: 12px; padding: 10px 12px;
   margin-bottom: 12px; }
