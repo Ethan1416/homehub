@@ -3,6 +3,15 @@ import { supabase, isConfigured } from '../../supabaseClient.js'
 import { exerciseCatalog, exerciseHistory, nextMilestone, milestoneIncrement, milestonesFor, currentLevel } from '../../lib/workouts.js'
 import { PROFILE_BW_LB } from '../../lib/constants.js'
 
+function fmtDuration(weeks) {
+  if (weeks == null) return '—'
+  if (weeks < 1) return 'this week'
+  if (weeks < 8) return `${Math.round(weeks)} wk`
+  if (weeks < 52) return `${Math.round(weeks / 4.33)} mo`
+  const years = weeks / 52
+  return years < 10 ? `${years.toFixed(1)} yr` : '10+ yr'
+}
+
 // Visual style per milestone status.
 const lineStyle = (m) => {
   if (m.status === 'achieved') return { color: '#bfc4d6', dash: '3 6' }
@@ -150,9 +159,9 @@ function ExerciseDetail({ ex, allRows, onBack }) {
                 {achieved
                   ? <span className="wo-mdate">already there</span>
                   : <>
-                      <span className="wo-mdate">{Math.round(m.weeks)} wk</span>
+                      <span className="wo-mdate">{fmtDuration(m.weeks)}</span>
                       <span className="wo-mdate dim">
-                        {new Date(m.projectedDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                        {new Date(m.projectedDate).toLocaleDateString([], { month: 'short', year: 'numeric' })}
                       </span>
                     </>}
               </div>

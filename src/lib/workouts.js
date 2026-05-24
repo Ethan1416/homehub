@@ -116,14 +116,15 @@ export function currentLevel(name, best) {
   return 'elite'
 }
 
-// Approximate weekly progression in lb by level + exercise increment size.
+// Realistic weekly progression rates (lb/week), calibrated against widely-cited
+// strength-progression norms (Lyle McDonald, Eric Helms, Greg Nuckols).
+// Novice can run linear progression (~3 sessions/wk × ~5 lb); rates drop sharply
+// across each level. Elite gains are essentially yearly, not weekly.
 function weeklyRate(level, increment) {
-  // Untrained/novice respond rapidly; rates drop steeply as you climb.
-  // Big-jump movements (inc 10) progress faster than fine isolation (inc 2.5).
   const table = {
-    10:  { untrained: 8,  novice: 5,   intermediate: 2.5, advanced: 1.0,  elite: 0.4 },
-    5:   { untrained: 5,  novice: 3,   intermediate: 1.5, advanced: 0.6,  elite: 0.25 },
-    2.5: { untrained: 2,  novice: 1.2, intermediate: 0.6, advanced: 0.3,  elite: 0.12 }
+    10:  { untrained: 7,   novice: 4,    intermediate: 1.5,  advanced: 0.5,  elite: 0.12 },
+    5:   { untrained: 3.5, novice: 1.2,  intermediate: 0.5,  advanced: 0.22, elite: 0.08 },
+    2.5: { untrained: 1.5, novice: 0.55, intermediate: 0.25, advanced: 0.12, elite: 0.04 }
   }
   const row = table[increment] || table[5]
   return row[level] || row.novice
@@ -131,8 +132,49 @@ function weeklyRate(level, increment) {
 
 function projectDate(weeks) {
   const d = new Date()
-  d.setDate(d.getDate() + Math.round(Math.max(weeks, 1) * 7))
+  // hard-cap at ~25 years so projections are still finite even at elite floor
+  const capped = Math.max(0.5, Math.min(weeks, 1300))
+  d.setDate(d.getDate() + Math.round(capped * 7))
   return d.toISOString().slice(0, 10)
+}
+
+// Time (in weeks) to go from `fromBest` to `toTarget`, walking through each
+// level segment at *that segment's* rate. So a current-novice projecting to
+// elite is intermediate-rate-then-advanced-rate-then-elite-rate, not novice-
+// rate the whole way. Optionally blends the user's observed rate at their
+// CURRENT level only.
+function projectWeeks(name, fromBest, toTarget, observedRate) {
+  if (toTarget == null || toTarget <= fromBest) return 0
+  const t = thresholds(name)
+  const inc = t.increment
+  const observerLevel = currentLevel(name, fromBest)
+
+  // Segments in ascending weight: [from, to, rateLevel]
+  const segs = [
+    [0,             t.novice,       'untrained'],
+    [t.novice,      t.intermediate, 'novice'],
+    [t.intermediate, t.advanced,    'intermediate'],
+    [t.advanced,    t.elite,        'advanced'],
+    [t.elite,       Infinity,       'elite']
+  ]
+  let weeks = 0
+  let cur = Math.max(0, fromBest || 0)
+  for (const [lo, hi, lvl] of segs) {
+    if (cur >= toTarget) break
+    if (cur >= hi) continue
+    const segLo = Math.max(cur, lo)
+    const segHi = Math.min(toTarget, hi)
+    let rate = weeklyRate(lvl, inc)
+    if (lvl === observerLevel && observedRate != null && observedRate > 0.05 && observedRate < 30) {
+      // Blend observed rate only for the segment matching the user's CURRENT
+      // level — observed data isn't predictive past the next plateau.
+      const w = lvl === 'untrained' ? 0.3 : lvl === 'novice' ? 0.4 : 0.6
+      rate = observedRate * w + rate * (1 - w)
+    }
+    weeks += (segHi - segLo) / rate
+    cur = segHi
+  }
+  return weeks
 }
 
 // All milestones for an exercise: next +increment bump plus every level
@@ -142,35 +184,27 @@ function projectDate(weeks) {
 //   'upcoming'   — future level not yet reached
 export function milestonesFor(name, best, observedRate /* lb/week or null */) {
   const t = thresholds(name)
-  const level = currentLevel(name, best)
   const inc = t.increment
-  const defaultRate = weeklyRate(level, inc)
-  let rate = defaultRate
-  if (observedRate != null && observedRate > 0.05 && observedRate < 30) {
-    const w = level === 'untrained' ? 0.3 : level === 'novice' ? 0.4 : 0.65
-    rate = observedRate * w + defaultRate * (1 - w)
-  }
   const cur = best || 0
   const ms = []
 
-  // next +increment bump
+  // next +increment bump (use the user's CURRENT level rate for this short hop)
   if (best != null) {
     const bump = Math.ceil((best + 0.01) / inc) * inc
+    const weeks = Math.max(0.5, projectWeeks(name, best, bump, observedRate))
     ms.push({
-      kind: 'bump', weight: bump, label: `+${inc} lb`,
-      status: 'next',
-      weeks: Math.max(0.5, (bump - best) / rate),
-      projectedDate: projectDate(Math.max(0.5, (bump - best) / rate))
+      kind: 'bump', weight: bump, label: `+${inc} lb`, status: 'next',
+      weeks, projectedDate: projectDate(weeks)
     })
   }
 
-  // all four levels
+  // every level, compounded across segments
   for (const lk of ['novice', 'intermediate', 'advanced', 'elite']) {
     const w = t[lk]; if (w == null) continue
     if (w <= cur) {
       ms.push({ kind: 'level', weight: w, label: lk, status: 'achieved' })
     } else {
-      const weeks = Math.max(2, (w - cur) / rate)
+      const weeks = Math.max(2, projectWeeks(name, cur, w, observedRate))
       ms.push({
         kind: 'level', weight: w, label: lk, status: 'upcoming',
         weeks, projectedDate: projectDate(weeks)
