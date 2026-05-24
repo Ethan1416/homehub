@@ -497,6 +497,43 @@ button { font: inherit; cursor: pointer; border: none; }
   background: var(--panel); border: 1px solid var(--line); color: var(--text);
   border-radius: 7px; padding: 6px 9px; font-size: 12px; }
 
+/* session summary */
+.cl-sum { background: var(--panel-2); border-radius: 12px; padding: 10px 12px;
+  margin-bottom: 12px; }
+.cl-sum-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.cl-sum-rest { font-size: 12px; color: var(--muted); font-weight: 700;
+  text-transform: uppercase; letter-spacing: .5px; margin-top: 7px; }
+.sum-pill { font-size: 12px; padding: 4px 9px; border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  font-weight: 600; white-space: nowrap; }
+.sum-pill b { font-weight: 800; margin-right: 4px; }
+.sum-pill.sum-max { background: rgba(245,72,46,.12); color: #d34a17;
+  border-color: rgba(245,72,46,.25); }
+.sum-pill.sum-high_effort { background: rgba(229,87,93,.12); color: #c93b3f;
+  border-color: rgba(229,87,93,.25); }
+.sum-pill.sum-burn { background: rgba(245,160,45,.13); color: #b06d10;
+  border-color: rgba(245,160,45,.28); }
+.sum-pill.sum-easy { background: rgba(95,208,160,.12); color: #168a5e;
+  border-color: rgba(95,208,160,.25); }
+.sum-pill.sum-warmup { background: rgba(124,156,255,.12); color: #3a52d8;
+  border-color: rgba(124,156,255,.28); }
+.sum-pill.sum-nothing { background: rgba(150,155,176,.12); color: #6e7488;
+  border-color: rgba(150,155,176,.25); }
+.sum-pill.sum-total { background: var(--panel); color: var(--muted); }
+
+/* compact summary line on a task card */
+.task-sum { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tsum { font-size: 10.5px; padding: 2px 7px; border-radius: 999px;
+  background: rgba(0,0,0,.05); color: #5a5f70; font-weight: 700;
+  text-transform: lowercase; letter-spacing: .2px; }
+.tsum.tsum-max { background: rgba(245,72,46,.16); color: #b13b14; }
+.tsum.tsum-high_effort { background: rgba(229,87,93,.16); color: #b03237; }
+.tsum.tsum-burn { background: rgba(245,160,45,.18); color: #9a5d0a; }
+.tsum.tsum-easy { background: rgba(95,208,160,.16); color: #167551; }
+.tsum.tsum-warmup { background: rgba(124,156,255,.16); color: #2d44c5; }
+.tsum.tsum-nothing { background: rgba(150,155,176,.15); color: #5d6377; }
+.tsum.tsum-rest { background: rgba(0,0,0,.06); color: #4b5063; }
+
 /* swap picker */
 .cl-swap { margin-bottom: 12px; padding: 9px 13px; border-radius: 10px;
   background: var(--panel-2); color: var(--accent); font-size: 13px;
