@@ -3,6 +3,7 @@ import { parseEvent, completion, defaultRestFor, EFFORT_LABELS } from '../lib/ch
 import { useProgress, saveProgress, setGymOverride, clearGymOverride } from '../lib/useData.js'
 import { useEvents } from '../lib/useData.js'
 import { ymd, fmtTime } from '../lib/date.js'
+import { exerciseKey } from '../lib/workouts.js'
 
 const EFFORT_OPTS = [
   ['', '— label —'],
@@ -17,7 +18,7 @@ const EFFORT_OPTS = [
 // "3. Hip thrust — 3 sets × 10–12 reps. Glutes." → "Hip thrust"
 const stripNum = (label) => label.replace(/^\d+\.\s*/, '').split('—')[0].trim()
 
-export default function ChecklistSheet({ event, day, onClose, onEdit }) {
+export default function ChecklistSheet({ event, day, onClose, onEdit, onOpenExercise }) {
   const parsed = parseEvent(event)
   const logDate = ymd(day)
   const { byEvent } = useProgress(logDate)
@@ -185,7 +186,15 @@ export default function ChecklistSheet({ event, day, onClose, onEdit }) {
             return (
               <div className="cl-ex" key={g.key}>
                 <div className="cl-ex-name-row">
-                  <span className="cl-ex-name">{g.label}</span>
+                  {onOpenExercise && parsed.kind === 'gym' ? (
+                    <button className="cl-ex-name cl-ex-link"
+                      onClick={() => onOpenExercise(exerciseKey(g.label))}>
+                      {g.label}
+                      <span className="cl-ex-arrow">↗</span>
+                    </button>
+                  ) : (
+                    <span className="cl-ex-name">{g.label}</span>
+                  )}
                   {allDone && (
                     <button className="cs-recollapse"
                       onClick={() => setExExpanded((e) => ({ ...e, [g.key]: false }))}>−</button>

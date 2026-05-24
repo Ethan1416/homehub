@@ -227,10 +227,15 @@ function ExerciseDetail({ ex, allRows, onBack }) {
   )
 }
 
-export default function WorkoutTab({ events, focusedEventId, clearFocus }) {
+export default function WorkoutTab({ events, focusedEventId, clearFocus, navReq }) {
   const [allRows, setAllRows] = useState([])
   const [open, setOpen] = useState(null) // exercise name (normalized) when detail open
   const focusedEvent = focusedEventId ? events.find((e) => e.id === focusedEventId) : null
+
+  // External nav: when a navReq nonce arrives, jump to its exercise detail.
+  useEffect(() => {
+    if (navReq?.ex) setOpen(navReq.ex)
+  }, [navReq?.nonce])
 
   useEffect(() => {
     if (!isConfigured) return

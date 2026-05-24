@@ -27,7 +27,7 @@ const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 export default function TasksTab({
   events, statuses, streak,
   selected, setSelected, weekBase, setWeekBase,
-  filter, setFilter, openChecklist, openGymPicker, openWorkout
+  filter, setFilter, openChecklist, openGymPicker
 }) {
   const { byEvent } = useProgress(ymd(selected))
   const overrides = useGymOverrides()
@@ -126,15 +126,7 @@ export default function TasksTab({
               <span className="tl-dot" style={{ borderColor: p.bar }} />
               <button className="task" style={{ background: p.bg }} onClick={() => openChecklist(e)}>
                 <div className="task-top">
-                  {e.type === 'gym' ? (
-                    <span className="task-title-link" role="link" tabIndex={0}
-                      onClick={(ev) => { ev.stopPropagation(); openWorkout(e.id) }}>
-                      <b>{e.title}</b>
-                      <span className="task-jump" style={{ color: p.bar }} aria-label="Jump to workout metrics">↗</span>
-                    </span>
-                  ) : (
-                    <b>{e.title}</b>
-                  )}
+                  <b>{e.title}</b>
                   <span className="task-time" style={{ color: p.bar }}>
                     {e.all_day ? 'All day' : fmtTime(e.starts_at)}
                   </span>

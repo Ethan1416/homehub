@@ -28,6 +28,7 @@ export default function PhoneView() {
   const [filter, setFilter] = useState(null)
   const [tab, setTab] = useState('tasks')
   const [workoutFocus, setWorkoutFocus] = useState(null) // event_id to filter Workout tab to
+  const [workoutNav, setWorkoutNav] = useState(null)     // {ex, nonce} — open this exercise on Workout tab
   const [modal, setModal] = useState(null)
 
   return (
@@ -43,7 +44,6 @@ export default function PhoneView() {
             filter={filter} setFilter={setFilter}
             openChecklist={(e) => setModal({ checklist: e })}
             openGymPicker={(day) => setModal({ gymPicker: day })}
-            openWorkout={(eventId) => { setWorkoutFocus(eventId); setTab('workout') }}
           />
         )}
         {tab === 'calendar' && (
@@ -53,7 +53,8 @@ export default function PhoneView() {
         {tab === 'workout' && (
           <WorkoutTab events={events}
             focusedEventId={workoutFocus}
-            clearFocus={() => setWorkoutFocus(null)} />
+            clearFocus={() => setWorkoutFocus(null)}
+            navReq={workoutNav} />
         )}
         {tab === 'claude' && <ClaudeTab />}
         {tab === 'oura' && <OuraTab />}
@@ -76,7 +77,12 @@ export default function PhoneView() {
       {modal?.checklist && (
         <ChecklistSheet event={modal.checklist} day={new Date(selected)}
           onClose={() => setModal(null)}
-          onEdit={() => setModal({ event: modal.checklist })} />
+          onEdit={() => setModal({ event: modal.checklist })}
+          onOpenExercise={(ex) => {
+            setWorkoutNav({ ex, nonce: Date.now() })
+            setTab('workout')
+            setModal(null)
+          }} />
       )}
       {modal?.gymPicker && (
         <RoutinePicker day={new Date(modal.gymPicker)}

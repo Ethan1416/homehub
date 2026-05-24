@@ -19,6 +19,7 @@ const normalize = (label) =>
   stripNum(label)
     .replace(/\(.*?\)/g, '')
     .replace(/\s+/g, ' ').trim().toLowerCase()
+export { normalize as exerciseKey }
 
 // {key: {scale, novice, intermediate, advanced, elite, increment}}
 // scale: 'bw' (multipliers of bodyweight) or 'abs' (absolute lbs).
