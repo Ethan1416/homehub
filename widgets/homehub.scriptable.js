@@ -22,7 +22,9 @@ const USER = 'ethan'
 const SUPABASE_URL = 'https://kiuxegztynurpthxsnvr.supabase.co'
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpdXhlZ3p0eW51cnB0aHhzbnZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTgxODksImV4cCI6MjA5NDc3NDE4OX0.XLYO2XCmXtfQvzD1tJGgdYZrqmMSBzsQBnXXZfz31ss'
 const APP_URL = 'https://ethan1416.github.io/homehub/'
-const SCRIPT_NAME = 'HomeHub' // must match the name you gave the script in Scriptable
+// Auto-detect the script's own name so widget tap URLs always match no matter
+// what you named the script in Scriptable (HomeHub, homehub.scriptable, etc).
+const SCRIPT_NAME = Script.name()
 
 // ── tiny supabase helpers ──────────────────────────────────────────────
 async function sbGet(path, params = '') {
