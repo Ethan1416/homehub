@@ -321,14 +321,13 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
     })
   }, [filteredCatalog, allRows])
 
-  // Clear `open` only via effect (calling setState during render → React #300).
-  useEffect(() => {
-    if (open && !catalog[open]) setOpen(null)
-  }, [open, catalog])
-
   if (open && catalog[open]) {
     return <ExerciseDetail ex={catalog[open]} allRows={allRows}
       onBack={() => setOpen(null)} />
+  }
+  if (open && !catalog[open]) {
+    // catalog briefly out of sync; render nothing and let the next pass settle.
+    return null
   }
 
   // Group exercises by muscle group for the Exercises sub-page
