@@ -758,7 +758,10 @@ button { font: inherit; cursor: pointer; border: none; }
   margin-bottom: 0; }
 .cl-ex-done .cs-tick { font-size: 18px; color: var(--good); font-weight: 800; }
 
-.cl-ex-name-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.cl-ex-name-row { display: flex; align-items: center; flex-wrap: wrap;
+  justify-content: space-between; gap: 8px; }
+.cl-ex-trend { font-size: 11px; font-weight: 800; padding: 3px 8px;
+  border-radius: 999px; white-space: nowrap; }
 .cl-ex-link { background: transparent; padding: 0; color: inherit;
   text-align: left; display: inline-flex; align-items: baseline; gap: 6px;
   font: inherit; line-height: inherit; cursor: pointer;

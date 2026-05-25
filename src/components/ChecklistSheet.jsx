@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { parseEvent, completion, defaultRestFor, EFFORT_LABELS } from '../lib/checklist.js'
 import { useProgress, saveProgress, setGymOverride, clearGymOverride } from '../lib/useData.js'
 import { useEvents } from '../lib/useData.js'
 import { supabase } from '../supabaseClient.js'
 import { ymd, fmtTime } from '../lib/date.js'
-import { exerciseKey } from '../lib/workouts.js'
+import { exerciseKey, exerciseCatalog, exerciseHistory, recentVariability } from '../lib/workouts.js'
 
 const EFFORT_OPTS = [
   ['', '— label —'],
@@ -101,6 +101,34 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
   const allEvents = useEvents().events
   const [pickRoutine, setPickRoutine] = useState(false)
   const gymTemplates = allEvents.filter((e) => e.type === 'gym' && e.id !== event.id)
+
+  // ----- per-exercise 2-week trend (weight / volume %) -----
+  // Fetch the user's last ~60 days of progress once when the sheet opens.
+  const [allRows, setAllRows] = useState([])
+  useEffect(() => {
+    if (parsed.kind !== 'gym') return
+    let cancelled = false
+    ;(async () => {
+      const since = new Date(); since.setDate(since.getDate() - 60)
+      const { data } = await supabase
+        .from('progress').select('*')
+        .eq('user_id', user)
+        .gte('log_date', since.toISOString().slice(0, 10))
+      if (!cancelled) setAllRows(data || [])
+    })()
+    return () => { cancelled = true }
+  }, [event.id, user, parsed.kind])
+
+  const catalog = useMemo(() => exerciseCatalog(allEvents), [allEvents])
+  const trendByKey = useMemo(() => {
+    const out = {}
+    for (const k in catalog) {
+      const { series } = exerciseHistory(catalog[k], allRows)
+      const v = recentVariability(series, 14)
+      if (v.trend && v.sessions >= 2) out[k] = v
+    }
+    return out
+  }, [catalog, allRows])
   async function swap(toEventId) { await setGymOverride(logDate, toEventId, user); setPickRoutine(false); onClose() }
   async function resetSwap()    { await clearGymOverride(logDate, user); setPickRoutine(false); onClose() }
 
@@ -219,6 +247,7 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
               )
             }
 
+            const trend = trendByKey[exerciseKey(g.label)]
             return (
               <div className="cl-ex" key={g.key}>
                 <div className="cl-ex-name-row">
@@ -230,6 +259,15 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
                     </button>
                   ) : (
                     <span className="cl-ex-name">{g.label}</span>
+                  )}
+                  {trend && (
+                    <span className={`cl-ex-trend wo-trend-pill-${trend.trend}`}
+                      title="2-week change · weight / volume">
+                      {trend.trend === 'up' ? '↑' : trend.trend === 'down' ? '↓' : '◇'}{' '}
+                      {(trend.weightPct >= 0 ? '+' : '') + Math.round(trend.weightPct)}%
+                      {' / '}
+                      {(trend.volumePct >= 0 ? '+' : '') + Math.round(trend.volumePct)}%v
+                    </span>
                   )}
                   {allDone && (
                     <button className="cs-recollapse"
