@@ -778,6 +778,53 @@ button { font: inherit; cursor: pointer; border: none; }
 .cl-set-mini .cs-num { font-size: 12px; color: var(--text); font-weight: 700; }
 .cl-set-mini .cs-tick { font-size: 14px; color: var(--good); font-weight: 800; }
 
+/* ─── Skipped state (per-set, per-exercise, per-item) ─────────────────── */
+/* Skip button next to the green check, per-set */
+.cs-skip { width: 30px; height: 24px; border-radius: 8px;
+  border: 1.5px dashed var(--line); background: transparent;
+  color: var(--muted); font-weight: 700; font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: -2px; }
+.cs-skip.on { border-style: solid; border-color: var(--muted);
+  background: rgba(150,155,176,.18); color: var(--text); }
+
+/* A skipped expanded set is muted (faded background, dashed border) */
+.cl-set2.skipped { background: rgba(150,155,176,.08) !important;
+  border: 1px dashed rgba(150,155,176,.35); opacity: .72; }
+
+/* Skipped collapsed set: grey, dashed, ↷ glyph */
+.cl-set-mini.skipped {
+  background: rgba(150,155,176,.10); border-color: rgba(150,155,176,.35); }
+.cl-set-mini.skipped .cs-tick { color: var(--muted); }
+
+/* "Skip rest ↷" button in the exercise header */
+.cl-skip-ex { background: transparent; border: 1px dashed var(--line);
+  color: var(--muted); font-size: 11px; font-weight: 700;
+  padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+.cl-skip-ex:active { background: rgba(150,155,176,.10); color: var(--text); }
+
+/* Collapsed exercise bar — different look when partially / fully skipped */
+.cl-ex-done.partial {
+  background: rgba(150,155,176,.10); border-color: rgba(150,155,176,.4); }
+.cl-ex-done.partial .cl-ex-name { color: var(--text); }
+.cl-ex-done.partial .cs-tick { color: var(--muted); font-size: 13px; }
+.cl-ex-done.all-skipped {
+  background: rgba(150,155,176,.10); border-color: rgba(150,155,176,.4); }
+.cl-ex-done.all-skipped .cl-ex-name { color: var(--muted); text-decoration: line-through; }
+.cl-ex-done.all-skipped .cs-tick { color: var(--muted); }
+
+/* Meal/simple item row with adjacent skip button */
+.cl-item-row { display: flex; align-items: stretch; gap: 6px;
+  margin-bottom: 6px; }
+.cl-item-row .cl-item { flex: 1; margin-bottom: 0; }
+.cl-item-row.state-skipped .cl-item { opacity: .55; text-decoration: line-through; }
+.cl-skip-btn { width: 36px; flex-shrink: 0;
+  background: transparent; border: 1px dashed var(--line);
+  color: var(--muted); font-size: 16px; font-weight: 700;
+  border-radius: 10px; }
+.cl-skip-btn.on { border-style: solid; background: rgba(150,155,176,.15);
+  color: var(--text); }
+
 /* one note per exercise (replaces per-set note) */
 .cl-ex-note { width: 100%; margin-top: 8px;
   background: var(--panel); border: 1px solid var(--line); color: var(--text);

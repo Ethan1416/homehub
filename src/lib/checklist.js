@@ -144,14 +144,26 @@ export function sessionSummary(progress) {
   }
 }
 
-// Count completed checkable units from a progress map keyed "item_key" (and
-// "item_key#set" for gym sets).
+// A row counts toward "moved past" if it's either explicitly done or skipped.
+const moved = (r) => !!(r && (r.done || r.skipped))
+
+// Count "moved-past" checkable units (done + skipped) from a progress map keyed
+// "item_key" (and "item_key#set" for gym sets). Skipped items count toward the
+// total so a day can still hit 100% without every set being completed.
 export function completion(parsed, progress) {
   let done = 0
   for (const g of parsed.groups) {
     if (g.sets > 0) {
-      for (let s = 0; s < g.sets; s++) if (progress[`${g.key}#${s}`]?.done) done++
-    } else if (progress[g.key]?.done) done++
+      for (let s = 0; s < g.sets; s++) if (moved(progress[`${g.key}#${s}`])) done++
+    } else if (moved(progress[g.key])) done++
   }
   return { done, total: parsed.total }
+}
+
+// Inspect a single cell's state. Used by UI for choosing icon/colour.
+export function cellState(c) {
+  if (!c) return 'open'
+  if (c.skipped) return 'skipped'
+  if (c.done) return 'done'
+  return 'open'
 }

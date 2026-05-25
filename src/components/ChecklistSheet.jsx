@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { parseEvent, completion, defaultRestFor, EFFORT_LABELS } from '../lib/checklist.js'
+import { parseEvent, completion, defaultRestFor, EFFORT_LABELS, cellState } from '../lib/checklist.js'
 import { useProgress, saveProgress, setGymOverride, clearGymOverride } from '../lib/useData.js'
 import { useEvents } from '../lib/useData.js'
 import { supabase } from '../supabaseClient.js'
@@ -34,6 +34,26 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
   const put = (key, patch) => {
     setV((s) => ({ ...s, [key]: { ...(s[key] || remote[key] || {}), ...patch } }))
     saveProgress(event.id, logDate, key, patch, user)
+  }
+  // Toggle done — mutually exclusive with skipped.
+  const toggleDone = (key) => {
+    const c = cell(key)
+    if (c.done) return put(key, { done: false })
+    put(key, { done: true, skipped: false })
+  }
+  // Toggle skipped — mutually exclusive with done.
+  const toggleSkip = (key) => {
+    const c = cell(key)
+    if (c.skipped) return put(key, { skipped: false })
+    put(key, { skipped: true, done: false })
+  }
+  // Skip every remaining (not done & not skipped) set of an exercise.
+  const skipExercise = (gKey, totalSets) => {
+    for (let s = 0; s < totalSets; s++) {
+      const k = `${gKey}#${s}`
+      const c = cell(k)
+      if (!c.done && !c.skipped) put(k, { skipped: true })
+    }
   }
 
   const merged = { ...remote, ...v }
@@ -222,32 +242,47 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
           {parsed.groups.map((g) => {
             if (g.sets === 0) {
               // Non-set checkable item (meal component / simple)
+              const st = cellState(cell(g.key))
               return (
-                <button className={`cl-item ${cell(g.key).done ? 'on' : ''}`} key={g.key}
-                  onClick={() => put(g.key, { done: !cell(g.key).done })}>
-                  <span className="cl-box">{cell(g.key).done ? '✓' : ''}</span>
-                  <span>{g.label}</span>
-                </button>
+                <div className={`cl-item-row state-${st}`} key={g.key}>
+                  <button className={`cl-item ${st === 'done' ? 'on' : ''} ${st === 'skipped' ? 'skipped' : ''}`}
+                    onClick={() => toggleDone(g.key)}>
+                    <span className="cl-box">{st === 'done' ? '✓' : st === 'skipped' ? '–' : ''}</span>
+                    <span>{g.label}</span>
+                  </button>
+                  <button className={`cl-skip-btn ${st === 'skipped' ? 'on' : ''}`}
+                    onClick={() => toggleSkip(g.key)}
+                    title={st === 'skipped' ? 'Un-skip' : 'Skip'}>
+                    {st === 'skipped' ? '↶' : '↷'}
+                  </button>
+                </div>
               )
             }
 
             const totalSets = effectiveSetCount(g)
             const setKeys = Array.from({ length: totalSets }, (_, s) => `${g.key}#${s}`)
-            const allDone = setKeys.length > 0 && setKeys.every((k) => cell(k).done)
-            const collapseEx = allDone && !exExpanded[g.key]
+            const setStates = setKeys.map((k) => cellState(cell(k)))
+            const allMoved = setKeys.length > 0 && setStates.every((s) => s !== 'open')
+            const skippedCount = setStates.filter((s) => s === 'skipped').length
+            const collapseEx = allMoved && !exExpanded[g.key]
             const restPlaceholder = defaultRestFor(g.label)
 
             if (collapseEx) {
+              const allSkipped = skippedCount === setKeys.length
               return (
-                <button className="cl-ex-done" key={g.key}
+                <button className={`cl-ex-done ${allSkipped ? 'all-skipped' : skippedCount ? 'partial' : ''}`}
+                  key={g.key}
                   onClick={() => setExExpanded((e) => ({ ...e, [g.key]: true }))}>
                   <span className="cl-ex-name">{stripNum(g.label)}</span>
-                  <span className="cs-tick">✓</span>
+                  <span className="cs-tick">
+                    {allSkipped ? '↷' : skippedCount ? `↷${skippedCount}` : '✓'}
+                  </span>
                 </button>
               )
             }
 
             const trend = trendByKey[exerciseKey(g.label)]
+            const hasRemaining = setStates.some((s) => s === 'open')
             return (
               <div className="cl-ex" key={g.key}>
                 <div className="cl-ex-name-row">
@@ -269,7 +304,13 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
                       {(trend.volumePct >= 0 ? '+' : '') + Math.round(trend.volumePct)}%v
                     </span>
                   )}
-                  {allDone && (
+                  {hasRemaining && (
+                    <button className="cl-skip-ex" title="Skip the rest of this exercise"
+                      onClick={() => skipExercise(g.key, totalSets)}>
+                      Skip rest ↷
+                    </button>
+                  )}
+                  {allMoved && (
                     <button className="cs-recollapse"
                       onClick={() => setExExpanded((e) => ({ ...e, [g.key]: false }))}>−</button>
                   )}
@@ -277,29 +318,47 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
                 <div className="cl-sets-v2">
                   {setKeys.map((k, s) => {
                     const c = cell(k)
-                    const isCollapsed = c.done && !setExpanded[k]
+                    const st = cellState(c)
+                    const isCollapsed = st !== 'open' && !setExpanded[k]
                     if (isCollapsed) {
                       return (
-                        <button className="cl-set-mini" key={k}
+                        <button className={`cl-set-mini ${st === 'skipped' ? 'skipped' : ''}`} key={k}
                           onClick={() => setSetExpanded((e) => ({ ...e, [k]: true }))}>
                           <span className="cs-num">Set {s + 1}</span>
-                          <span className="cs-tick">✓</span>
+                          <span className="cs-tick">{st === 'skipped' ? '↷' : '✓'}</span>
                         </button>
                       )
                     }
                     return (
-                      <div className={`cl-set2 ${c.effort || ''}`} key={k}>
+                      <div className={`cl-set2 ${c.effort || ''} ${st === 'skipped' ? 'skipped' : ''}`} key={k}>
                         <div className="cs-left">
                           <span className="cs-num">Set {s + 1}</span>
                           <button className={`cs-check ${c.done ? 'on' : ''}`}
                             onClick={() => {
                               const newDone = !c.done
-                              put(k, { done: newDone })
-                              if (newDone) setSetExpanded((e) => ({ ...e, [k]: false }))
+                              if (newDone) {
+                                put(k, { done: true, skipped: false })
+                                setSetExpanded((e) => ({ ...e, [k]: false }))
+                              } else {
+                                put(k, { done: false })
+                              }
                             }}>
                             {c.done ? '✓' : ''}
                           </button>
-                          {c.done && setExpanded[k] && (
+                          <button className={`cs-skip ${c.skipped ? 'on' : ''}`}
+                            onClick={() => {
+                              const newSkip = !c.skipped
+                              if (newSkip) {
+                                put(k, { skipped: true, done: false })
+                                setSetExpanded((e) => ({ ...e, [k]: false }))
+                              } else {
+                                put(k, { skipped: false })
+                              }
+                            }}
+                            title={c.skipped ? 'Un-skip' : 'Skip this set'}>
+                            {c.skipped ? '↶' : '↷'}
+                          </button>
+                          {st !== 'open' && setExpanded[k] && (
                             <button className="cs-recollapse"
                               onClick={() => setSetExpanded((e) => ({ ...e, [k]: false }))}>−</button>
                           )}
