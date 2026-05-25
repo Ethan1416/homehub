@@ -173,6 +173,9 @@ function ExerciseDetail({ ex, allRows, onBack }) {
   return (
     <>
       <button className="back-btn" onClick={onBack}>‹ Back</button>
+      <div style={{padding:14, background:'#ffd', color:'#600', fontSize:12, marginBottom:10}}>
+        DEBUG ex={ex.display} best={best} ms={milestones.length} series={series.length}
+      </div>
       <div className="md-hero">
         <div className="md-name">{ex.display}</div>
         <div className="md-status">
