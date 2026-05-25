@@ -260,7 +260,6 @@ function ExerciseDetail({ ex, allRows, onBack }) {
 }
 
 const SECTIONS = [
-  { k: 'progress', label: 'Progress' },
   { k: 'exercises', label: 'Exercises' },
   { k: 'routines', label: 'Routines' }
 ]
@@ -268,13 +267,14 @@ const SECTIONS = [
 export default function WorkoutTab({ events, user = 'ethan', focusedEventId, clearFocus, navReq }) {
   const [allRows, setAllRows] = useState([])
   const [open, setOpen] = useState(null) // exercise name (normalized) when detail open
-  const [section, setSection] = useState('progress')
+  const [section, setSection] = useState('exercises')
   const [routineOpen, setRoutineOpen] = useState(null) // which weekday event id is open for editing
+  const [openGroup, setOpenGroup] = useState(null)     // expanded muscle group on Exercises sub-page
   const focusedEvent = focusedEventId ? events.find((e) => e.id === focusedEventId) : null
 
   // External nav: when a navReq nonce arrives, jump to its exercise detail.
   useEffect(() => {
-    if (navReq?.ex) { setSection('progress'); setOpen(navReq.ex) }
+    if (navReq?.ex) { setSection('exercises'); setOpen(navReq.ex) }
   }, [navReq?.nonce])
 
   useEffect(() => {
@@ -343,8 +343,7 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
       <div className="ora-hdr">
         <div className="ph-greet">Workout</div>
         <div className="ph-stat" style={{ fontSize: 22 }}>
-          {section === 'progress' && `${list.length} exercises`}
-          {section === 'exercises' && 'By muscle group'}
+          {section === 'exercises' && (openGroup ? openGroup : `${list.length} exercises`)}
           {section === 'routines' && 'Weekly plan'}
         </div>
       </div>
@@ -356,7 +355,7 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
         ))}
       </div>
 
-      {section === 'progress' && (
+      {section === 'exercises' && (
         <>
           {focusedEvent && (
             <div className="wo-focus">
@@ -367,31 +366,10 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
               <button className="wo-focus-clear" onClick={clearFocus}>Show all ×</button>
             </div>
           )}
-          {list.length === 0 && <p className="cal-hint">No exercises here.</p>}
-          {list.map((c) => {
-            const tgt = nextMilestone(c.best, c.name)
-            return (
-              <button className="wo-row" key={c.name} onClick={() => setOpen(c.name)}>
-                <div className="wo-row-l">
-                  <b>{c.display}</b>
-                  <small>
-                    {c.best > 0
-                      ? `Best ${c.best} lb · ${c.series.length} session${c.series.length === 1 ? '' : 's'}`
-                      : 'No history yet'}
-                  </small>
-                </div>
-                <div className="wo-row-r">
-                  {tgt && <span className="wo-tgt">→ {tgt}</span>}
-                  <span className="cl-chev">›</span>
-                </div>
-              </button>
-            )
-          })}
+          <ExercisesByGroup grouped={grouped} order={groupOrder} list={list}
+            openGroup={openGroup} setOpenGroup={setOpenGroup}
+            onOpen={setOpen} filtered={!!focusedEvent} />
         </>
-      )}
-
-      {section === 'exercises' && (
-        <ExercisesByGroup grouped={grouped} order={groupOrder} onOpen={setOpen} />
       )}
 
       {section === 'routines' &&
@@ -403,26 +381,76 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
   )
 }
 
-// --- Exercises grouped by muscle group ---
-function ExercisesByGroup({ grouped, order, onOpen }) {
+// --- Exercises grouped by muscle group, drill-down ---
+function ExercisesByGroup({ grouped, order, list, openGroup, setOpenGroup, onOpen, filtered }) {
+  // When filtered (came from a specific workout), show a flat list instead of groups.
+  if (filtered) {
+    return (
+      <>
+        {list.length === 0 && <p className="cal-hint">No exercises here.</p>}
+        {list.map((c) => {
+          const tgt = nextMilestone(c.best, c.name)
+          return (
+            <button className="wo-row" key={c.name} onClick={() => onOpen(c.name)}>
+              <div className="wo-row-l">
+                <b>{c.display}</b>
+                <small>{c.best > 0
+                  ? `Best ${c.best} lb · ${c.series.length} session${c.series.length === 1 ? '' : 's'}`
+                  : 'No history yet'}</small>
+              </div>
+              <div className="wo-row-r">
+                {tgt && <span className="wo-tgt">→ {tgt}</span>}
+                <span className="cl-chev">›</span>
+              </div>
+            </button>
+          )
+        })}
+      </>
+    )
+  }
+
+  if (openGroup) {
+    const arr = grouped[openGroup] || []
+    return (
+      <>
+        <button className="back-btn" onClick={() => setOpenGroup(null)}>‹ All muscle groups</button>
+        <div className="wo-group">
+          <div className="wo-group-h">{openGroup}<span>{arr.length}</span></div>
+          {arr.length === 0 && <p className="cal-hint">No exercises in this group yet.</p>}
+          {arr.map((c) => {
+            const tgt = nextMilestone(c.best, c.name)
+            return (
+              <button className="wo-row" key={c.name} onClick={() => onOpen(c.name)}>
+                <div className="wo-row-l">
+                  <b>{c.display}</b>
+                  <small>{c.best > 0
+                    ? `Best ${c.best} lb · ${c.series.length} session${c.series.length === 1 ? '' : 's'}`
+                    : 'No history yet'}</small>
+                </div>
+                <div className="wo-row-r">
+                  {tgt && <span className="wo-tgt">→ {tgt}</span>}
+                  <span className="cl-chev">›</span>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      </>
+    )
+  }
   return (
     <>
       {order.map((g) => {
         const arr = grouped[g]
         if (!arr || arr.length === 0) return null
         return (
-          <div className="wo-group" key={g}>
-            <div className="wo-group-h">{g}<span>{arr.length}</span></div>
-            {arr.map((c) => (
-              <button className="wo-row" key={c.name} onClick={() => onOpen(c.name)}>
-                <div className="wo-row-l">
-                  <b>{c.display}</b>
-                  <small>{c.best > 0 ? `Best ${c.best} lb` : 'No history yet'}</small>
-                </div>
-                <span className="cl-chev">›</span>
-              </button>
-            ))}
-          </div>
+          <button className="wo-mg-row" key={g} onClick={() => setOpenGroup(g)}>
+            <div className="wo-mg-l">
+              <b>{g}</b>
+              <small>{arr.length} exercise{arr.length === 1 ? '' : 's'}</small>
+            </div>
+            <span className="cl-chev">›</span>
+          </button>
         )
       })}
     </>
@@ -482,6 +510,8 @@ function RoutineEditor({ eventId, events, user, onBack }) {
   })
   const [addingEx, setAddingEx] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [confirmIdx, setConfirmIdx] = useState(null) // idx of exercise pending delete
+  const [confirmText, setConfirmText] = useState('')
 
   if (!ev) return <button className="back-btn" onClick={onBack}>‹ Back</button>
 
@@ -497,7 +527,13 @@ function RoutineEditor({ eventId, events, user, onBack }) {
       ...renumbered,
       ...others.slice(1)           // trailing notes (rest)
     ])
+    setConfirmIdx(null)
+    setConfirmText('')
   }
+  const askConfirm = (idx) => { setConfirmIdx(idx); setConfirmText('') }
+  const cancelConfirm = () => { setConfirmIdx(null); setConfirmText('') }
+  const exerciseName = (i) =>
+    (numbered[i] || '').replace(/^\d+\.\s*/, '').split('—')[0].trim() || `exercise ${i + 1}`
 
   function appendExercise(name, sets, reps) {
     if (!name) return
@@ -532,9 +568,26 @@ function RoutineEditor({ eventId, events, user, onBack }) {
 
       <div className="wo-edit-list">
         {numbered.map((line, i) => (
-          <div className="wo-edit-row" key={i}>
-            <span>{line.replace(/^\d+\.\s*/, `${i + 1}. `)}</span>
-            <button className="wo-edit-del" onClick={() => removeExercise(i)} title="Remove">×</button>
+          <div key={i}>
+            <div className="wo-edit-row">
+              <span>{line.replace(/^\d+\.\s*/, `${i + 1}. `)}</span>
+              <button className="wo-edit-del"
+                onClick={() => askConfirm(i)} title="Remove">×</button>
+            </div>
+            {confirmIdx === i && (
+              <div className="wo-confirm">
+                <b>Remove "{exerciseName(i)}"?</b>
+                <p>This permanently changes the {ev.title} routine. Type <code>confirm</code> below to remove.</p>
+                <input autoFocus placeholder="confirm" value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)} />
+                <div className="sheet-actions">
+                  <button className="btn ghost" onClick={cancelConfirm}>Cancel</button>
+                  <button className="btn danger"
+                    disabled={confirmText.trim().toLowerCase() !== 'confirm'}
+                    onClick={() => removeExercise(i)}>Remove</button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
         {!addingEx && (
