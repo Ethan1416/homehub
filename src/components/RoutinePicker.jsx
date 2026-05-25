@@ -8,7 +8,7 @@ const dowOrder = (e) => {
 const dowName = (e) =>
   new Date(e.starts_at).toLocaleDateString([], { weekday: 'short' })
 
-export default function RoutinePicker({ day, user = 'ethan', onClose }) {
+export default function RoutinePicker({ day, user = 'ethan', onClose, onBuildCustom }) {
   const { events } = useEvents()
   const gymTemplates = events
     .filter((e) => e.type === 'gym' && e.recurrence === 'weekly')
@@ -28,6 +28,12 @@ export default function RoutinePicker({ day, user = 'ethan', onClose }) {
         <div className="cl-pick-h">Pick a routine</div>
         {gymTemplates.length === 0 && (
           <p className="hint">No gym templates yet. Create one with the + button.</p>
+        )}
+        {onBuildCustom && (
+          <button className="cl-pick-row custom" onClick={onBuildCustom}>
+            <b>+ Build a custom workout</b>
+            <small>Set your own exercises, sets, and reps for this day only</small>
+          </button>
         )}
         {gymTemplates.map((g) => (
           <button className="cl-pick-row" key={g.id} onClick={() => pick(g.id)}>

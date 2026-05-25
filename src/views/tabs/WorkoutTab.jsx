@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase, isConfigured } from '../../supabaseClient.js'
-import { exerciseCatalog, exerciseHistory, nextMilestone, milestoneIncrement, milestonesFor, currentLevel } from '../../lib/workouts.js'
+import { exerciseCatalog, exerciseHistory, nextMilestone, milestoneIncrement, milestonesFor, currentLevel, recentVariability } from '../../lib/workouts.js'
 import { PROFILE_BW_LB } from '../../lib/constants.js'
 
 function fmtDuration(weeks) {
@@ -166,6 +166,7 @@ function ExerciseDetail({ ex, allRows, onBack }) {
     .sort((a, b) => a.weight - b.weight)
   const level = currentLevel(ex.name, best)
   const last = series[series.length - 1]
+  const v = recentVariability(series, 14)
 
   return (
     <>
@@ -192,6 +193,35 @@ function ExerciseDetail({ ex, allRows, onBack }) {
           <b>{series.length} session{series.length === 1 ? '' : 's'}</b>
         </div>
         <ExerciseChart series={series} milestones={milestones} />
+        {v.trend && v.sessions >= 2 && (
+          <div className={`wo-trend wo-trend-${v.trend}`}>
+            <b>
+              {v.trend === 'up' && '▲ Trending up'}
+              {v.trend === 'down' && '▼ Trending down'}
+              {v.trend === 'flat' && '◇ Holding steady'}
+            </b>
+            <span>
+              {v.trend !== 'flat' && (
+                <>
+                  Weight {v.weightPct >= 0 ? '+' : ''}{v.weightPct.toFixed(1)}%
+                  {' '}({v.weightDelta >= 0 ? '+' : ''}{Math.round(v.weightDelta)} lb)
+                  {' · '}
+                  Volume {v.volumePct >= 0 ? '+' : ''}{v.volumePct.toFixed(0)}%
+                  {' '}over {v.sessions} sessions in 2 weeks
+                </>
+              )}
+              {v.trend === 'flat' && (
+                <>No meaningful change over {v.sessions} session{v.sessions === 1 ? '' : 's'} in 2 weeks</>
+              )}
+            </span>
+          </div>
+        )}
+        {(!v.trend || v.sessions < 2) && series.length > 0 && (
+          <div className="wo-trend wo-trend-flat">
+            <b>Not enough data yet</b>
+            <span>Need at least 2 sessions in the last 2 weeks to show a trend.</span>
+          </div>
+        )}
       </div>
 
       <div className="wo-mlist">

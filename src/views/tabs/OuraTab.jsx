@@ -72,16 +72,24 @@ export default function OuraTab({ user = 'ethan' }) {
       <>
         <div className="ora-hdr">
           <div className="ph-greet">Vitals</div>
-          <div className="ph-stat" style={{ fontSize: 22 }}>Loading…</div>
+          <div className="ph-stat" style={{ fontSize: 22 }}>No data yet</div>
         </div>
         <div className="oura-empty">
           <div className="oura-emoji">💍</div>
-          <h3>Syncing your Oura…</h3>
-          <p>Pulling the last 14 days from Oura. This usually takes a few seconds.</p>
+          <h3>No Oura data</h3>
+          <p>Once your ring syncs with Oura's cloud (and your token is set on this account), the last two weeks will show up here.</p>
         </div>
       </>
     )
   }
+
+  // How fresh is the latest reading? If > 1 calendar day stale, flag it.
+  const todayKey = new Date().toISOString().slice(0, 10)
+  const latestKey = today?.day
+  const dayDiff = latestKey
+    ? Math.round((new Date(todayKey) - new Date(latestKey)) / 86400000)
+    : null
+  const stale = dayDiff != null && dayDiff > 1
 
   const series = (key) => [...rows].reverse().map((r) => r[key])
   const dayLabel = today
@@ -94,6 +102,17 @@ export default function OuraTab({ user = 'ethan' }) {
         <div className="ph-greet">Vitals</div>
         <div className="ph-stat" style={{ fontSize: 22 }}>{dayLabel}</div>
       </div>
+
+      {stale && (
+        <div className="ora-stale">
+          <b>⚠ Ring may be offline</b>
+          <span>
+            Latest reading is {dayDiff} day{dayDiff === 1 ? '' : 's'} old (
+            {new Date(latestKey + 'T12:00').toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}).
+            Showing the most recent data — it will refresh automatically when the ring is back on and synced.
+          </span>
+        </div>
+      )}
 
       <div className="ora-rings">
         <div className="ora-card">

@@ -4,6 +4,7 @@ import { isConfigured } from '../supabaseClient.js'
 import EventModal from '../components/EventModal.jsx'
 import ChecklistSheet from '../components/ChecklistSheet.jsx'
 import RoutinePicker from '../components/RoutinePicker.jsx'
+import CustomWorkoutBuilder from '../components/CustomWorkoutBuilder.jsx'
 import { useCurrentUser, setUser as setCurrentUser } from '../components/UserGate.jsx'
 import TasksTab from './tabs/TasksTab.jsx'
 import CalendarTab from './tabs/CalendarTab.jsx'
@@ -89,6 +90,11 @@ export default function PhoneView() {
       )}
       {modal?.gymPicker && (
         <RoutinePicker day={new Date(modal.gymPicker)} user={user}
+          onClose={() => setModal(null)}
+          onBuildCustom={() => setModal({ custom: modal.gymPicker })} />
+      )}
+      {modal?.custom && (
+        <CustomWorkoutBuilder day={new Date(modal.custom)} user={user}
           onClose={() => setModal(null)} />
       )}
       {(modal?.new || modal?.event) && (

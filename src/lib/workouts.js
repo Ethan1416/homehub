@@ -269,6 +269,31 @@ export function exerciseHistory(catalogEntry, allRows) {
   return { series, best, observedRate }
 }
 
+// Two-week variability snapshot for an exercise. Returns:
+//   { trend: 'up'|'down'|'flat'|null,
+//     weightPct, volumePct,        // % change between earliest and latest in window
+//     weightDelta, volumeDelta,    // absolute deltas (lb / lb-reps)
+//     sessions }                   // count in window
+export function recentVariability(series, days = 14) {
+  if (!series || series.length === 0) return { trend: null, sessions: 0 }
+  const cut = new Date(); cut.setDate(cut.getDate() - days)
+  const window = series.filter((s) => new Date(s.date) >= cut)
+  if (window.length === 0) return { trend: null, sessions: 0 }
+  if (window.length === 1) return { trend: 'flat', sessions: 1,
+    weightPct: 0, volumePct: 0, weightDelta: 0, volumeDelta: 0 }
+  const first = window[0], last = window[window.length - 1]
+  const wPct = first.maxWeight ? ((last.maxWeight - first.maxWeight) / first.maxWeight) * 100 : 0
+  const vPct = first.volume ? ((last.volume - first.volume) / first.volume) * 100 : 0
+  const trend = Math.abs(wPct) < 1.5 && Math.abs(vPct) < 5
+    ? 'flat' : (wPct + vPct) > 0 ? 'up' : 'down'
+  return {
+    trend, sessions: window.length,
+    weightPct: wPct, volumePct: vPct,
+    weightDelta: last.maxWeight - first.maxWeight,
+    volumeDelta: last.volume - first.volume
+  }
+}
+
 // Convenience back-compat exports the existing WorkoutTab uses.
 export function milestoneIncrement(name) { return lookup(name).increment }
 export function nextMilestone(best, name) {
