@@ -121,39 +121,24 @@ async function loadNext() {
     return null
   }
 
-  // ── Pick "next" intelligently ────────────────────────────────────────
-  // Prefer events that are imminent (started within the last ~1h, or upcoming)
-  // over stale ones the user already missed. This means a missed 7am breakfast
-  // doesn't block the widget from showing your actual next 5pm task.
-  //
-  // Algorithm:
-  //   1. Compute every event's "phase" relative to NOW:
-  //        - 'current':  starts_at within (-60min, +∞)  → fresh / upcoming
-  //        - 'stale':    starts_at < now - 60min        → already missed
-  //   2. Among events with open items, prefer the first 'current' one (by start).
-  //   3. If none, fall back to the most-recent 'stale' open event (so you can
-  //      still mop it up if you want to).
-  const now = new Date()
-  const STALE_MS = 60 * 60 * 1000 // 1h grace after start_time
-  const summaries = []
+  // ── Pick "next" — strictly chronological ─────────────────────────────
+  // Show the first task of the day with anything still open. The widget only
+  // advances when the current task is marked done OR skipped (both count as
+  // "moved past"). Wall-clock time is irrelevant — a missed 7am breakfast
+  // stays on the widget until you tap skip or check it off.
+  let next = null
   let totalDone = 0, totalAll = 0
   for (const e of todaysEvents) {
     const parsed = parseEvent(e)
     const p = byEvent[e.id] || {}
     const { done, total } = completion(parsed, p)
     totalDone += done; totalAll += total
-    const open = firstOpen(parsed, p)
-    if (!open) continue
-    const start = new Date(e.starts_at)
-    const isAllDay = !!e.all_day
-    const isCurrent = isAllDay || start.getTime() >= now.getTime() - STALE_MS
-    summaries.push({ event: e, parsed, open, done, total, startTime: start, isCurrent })
-  }
-  let next = summaries.find((s) => s.isCurrent)
-  if (!next && summaries.length) {
-    // No fresh event with anything open — fall back to the most-recent stale.
-    next = summaries[summaries.length - 1]
-    next.stale = true
+    if (!next) {
+      const open = firstOpen(parsed, p)
+      if (open) {
+        next = { event: e, parsed, open, done, total, startTime: new Date(e.starts_at) }
+      }
+    }
   }
   return { next, todayKey, totalDone, totalAll, eventCount: todaysEvents.length }
 }
@@ -202,20 +187,12 @@ function buildWidget(state) {
     return w
   }
 
-  // Event title + optional 'missed' chip if we fell back to a stale event
-  const { event, open, done, total, startTime, stale } = state.next
-  const titleRow = w.addStack()
-  titleRow.layoutHorizontally()
-  const title = titleRow.addText(event.title)
+  // Event title
+  const { event, open, done, total, startTime } = state.next
+  const title = w.addText(event.title)
   title.font = Font.boldSystemFont(15)
   title.textColor = new Color('#e8ebf5')
   title.lineLimit = 1
-  if (stale) {
-    titleRow.addSpacer(6)
-    const chip = titleRow.addText('missed')
-    chip.font = Font.boldSystemFont(9)
-    chip.textColor = new Color('#e5575d')
-  }
 
   // Next task line
   w.addSpacer(4)
@@ -224,7 +201,7 @@ function buildWidget(state) {
     : `Next: ${open.label}`
   const t = w.addText(taskText)
   t.font = Font.semiboldSystemFont(13)
-  t.textColor = new Color(stale ? '#a8afc7' : '#7c9cff')
+  t.textColor = new Color('#7c9cff')
   t.lineLimit = 2
 
   // Bottom: time + progress
