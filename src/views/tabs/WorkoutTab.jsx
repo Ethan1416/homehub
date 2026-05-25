@@ -279,6 +279,10 @@ const SECTIONS = [
 ]
 
 export default function WorkoutTab({ events, user = 'ethan', focusedEventId, clearFocus, navReq }) {
+  if (typeof window !== 'undefined') {
+    window.__wo = (window.__wo || 0) + 1
+    document.title = `r=${window.__wo} open=${typeof window.__wo_open} events=${events.length}`
+  }
   const [allRows, setAllRows] = useState([])
   const [open, setOpen] = useState(null) // exercise name (normalized) when detail open
   const [section, setSection] = useState('exercises')
