@@ -382,19 +382,15 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
   )
 }
 
-// Inline 2-week trend pill: arrow + weight% / volume%
+// Inline 2-week trend pill: arrow + weight% / volume%. Always shows numbers.
 function TrendPill({ v }) {
   if (!v?.trend || v.sessions < 2) return null
   const arrow = v.trend === 'up' ? '↑' : v.trend === 'down' ? '↓' : '◇'
-  const cls = `wo-trend-pill wo-trend-pill-${v.trend}`
-  const sign = (n) => (n >= 0 ? '+' : '') + Math.round(n)
-  if (v.trend === 'flat') {
-    return <span className={cls}>{arrow} flat</span>
-  }
+  const sign = (n) => (n >= 0 ? '+' : '') + Math.round(n) + '%'
   return (
-    <span className={cls} title="2-week change (weight / volume)">
-      {arrow} {sign(v.weightPct)}%
-      <small>{sign(v.volumePct)}%v</small>
+    <span className={`wo-trend-pill wo-trend-pill-${v.trend}`}
+      title="2-week change · weight / volume">
+      {arrow} {sign(v.weightPct)} / {sign(v.volumePct)}v
     </span>
   )
 }

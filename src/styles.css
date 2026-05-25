@@ -229,15 +229,15 @@ body {
 .wo-tgt { font-size: 11px; font-weight: 800; color: #e5575d;
   background: rgba(229,87,93,.10); padding: 3px 8px; border-radius: 999px;
   white-space: nowrap; }
-.wo-trend-pill { font-size: 11px; font-weight: 800;
+.wo-trend-pill { font-size: 10.5px; font-weight: 800;
   padding: 3px 8px; border-radius: 999px;
-  display: inline-flex; align-items: baseline; gap: 4px;
-  white-space: nowrap; letter-spacing: -.2px; }
-.wo-trend-pill small { font-size: 9.5px; font-weight: 700; opacity: .75; }
+  white-space: nowrap; letter-spacing: -.1px; }
 .wo-trend-pill-up    { color: #167551; background: rgba(47,179,128,.13); }
 .wo-trend-pill-down  { color: #b03237; background: rgba(229,87,93,.13); }
 .wo-trend-pill-flat  { color: #6e7488; background: rgba(150,155,176,.13); }
-.wo-row-r { gap: 6px; }
+.wo-row-l { min-width: 0; flex: 1; }
+.wo-row-r { gap: 6px; flex-shrink: 0; }
+.wo-row-l b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .wo-card { background: var(--panel); border: 1px solid var(--line);
   border-radius: 16px; padding: 14px 16px; margin-bottom: 12px;
