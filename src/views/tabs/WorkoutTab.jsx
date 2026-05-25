@@ -305,7 +305,8 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
   const list = useMemo(() => {
     return Object.values(filteredCatalog).map((c) => {
       const { series, best } = exerciseHistory(c, allRows)
-      return { ...c, series, best, last: series[series.length - 1] }
+      const variability = recentVariability(series, 14)
+      return { ...c, series, best, variability, last: series[series.length - 1] }
     }).sort((a, b) => {
       // most-recently-trained first, else alphabetical
       const ad = a.last?.date || ''
@@ -381,6 +382,23 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
   )
 }
 
+// Inline 2-week trend pill: arrow + weight% / volume%
+function TrendPill({ v }) {
+  if (!v?.trend || v.sessions < 2) return null
+  const arrow = v.trend === 'up' ? '↑' : v.trend === 'down' ? '↓' : '◇'
+  const cls = `wo-trend-pill wo-trend-pill-${v.trend}`
+  const sign = (n) => (n >= 0 ? '+' : '') + Math.round(n)
+  if (v.trend === 'flat') {
+    return <span className={cls}>{arrow} flat</span>
+  }
+  return (
+    <span className={cls} title="2-week change (weight / volume)">
+      {arrow} {sign(v.weightPct)}%
+      <small>{sign(v.volumePct)}%v</small>
+    </span>
+  )
+}
+
 // --- Exercises grouped by muscle group, drill-down ---
 function ExercisesByGroup({ grouped, order, list, openGroup, setOpenGroup, onOpen, filtered }) {
   // When filtered (came from a specific workout), show a flat list instead of groups.
@@ -399,6 +417,7 @@ function ExercisesByGroup({ grouped, order, list, openGroup, setOpenGroup, onOpe
                   : 'No history yet'}</small>
               </div>
               <div className="wo-row-r">
+                <TrendPill v={c.variability} />
                 {tgt && <span className="wo-tgt">→ {tgt}</span>}
                 <span className="cl-chev">›</span>
               </div>
@@ -428,6 +447,7 @@ function ExercisesByGroup({ grouped, order, list, openGroup, setOpenGroup, onOpe
                     : 'No history yet'}</small>
                 </div>
                 <div className="wo-row-r">
+                  <TrendPill v={c.variability} />
                   {tgt && <span className="wo-tgt">→ {tgt}</span>}
                   <span className="cl-chev">›</span>
                 </div>
