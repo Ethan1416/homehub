@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase, isConfigured } from '../../supabaseClient.js'
-import { exerciseCatalog, exerciseHistory, nextMilestone, milestoneIncrement, milestonesFor, currentLevel, recentVariability } from '../../lib/workouts.js'
+// note: supabase is used by RoutineEditor below for direct event updates
+import { exerciseCatalog, exerciseHistory, nextMilestone, milestoneIncrement, milestonesFor, currentLevel, recentVariability, muscleGroupFor } from '../../lib/workouts.js'
+import { parseEvent } from '../../lib/checklist.js'
 import { PROFILE_BW_LB } from '../../lib/constants.js'
 
 function fmtDuration(weeks) {
@@ -257,14 +259,22 @@ function ExerciseDetail({ ex, allRows, onBack }) {
   )
 }
 
+const SECTIONS = [
+  { k: 'progress', label: 'Progress' },
+  { k: 'exercises', label: 'Exercises' },
+  { k: 'routines', label: 'Routines' }
+]
+
 export default function WorkoutTab({ events, user = 'ethan', focusedEventId, clearFocus, navReq }) {
   const [allRows, setAllRows] = useState([])
   const [open, setOpen] = useState(null) // exercise name (normalized) when detail open
+  const [section, setSection] = useState('progress')
+  const [routineOpen, setRoutineOpen] = useState(null) // which weekday event id is open for editing
   const focusedEvent = focusedEventId ? events.find((e) => e.id === focusedEventId) : null
 
   // External nav: when a navReq nonce arrives, jump to its exercise detail.
   useEffect(() => {
-    if (navReq?.ex) setOpen(navReq.ex)
+    if (navReq?.ex) { setSection('progress'); setOpen(navReq.ex) }
   }, [navReq?.nonce])
 
   useEffect(() => {
@@ -316,49 +326,259 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
     return <ExerciseDetail ex={ex} allRows={allRows} onBack={() => setOpen(null)} />
   }
 
+  // Group exercises by muscle group for the Exercises sub-page
+  const grouped = useMemo(() => {
+    const g = {}
+    for (const c of list) {
+      const m = muscleGroupFor(c.display)
+      ;(g[m] ||= []).push(c)
+    }
+    return g
+  }, [list])
+  const groupOrder = ['Chest','Back','Shoulders','Biceps','Triceps','Quads',
+    'Hamstrings','Glutes / Hips','Calves','Core','Cardio','Other']
+
   return (
     <>
       <div className="ora-hdr">
         <div className="ph-greet">Workout</div>
         <div className="ph-stat" style={{ fontSize: 22 }}>
-          {list.length} exercises
+          {section === 'progress' && `${list.length} exercises`}
+          {section === 'exercises' && 'By muscle group'}
+          {section === 'routines' && 'Weekly plan'}
         </div>
       </div>
 
-      {focusedEvent && (
-        <div className="wo-focus">
-          <span className="wo-focus-l">
-            <small>Showing</small>
-            <b>{focusedEvent.title}</b>
-          </span>
-          <button className="wo-focus-clear" onClick={clearFocus}>Show all ×</button>
-        </div>
+      <div className="wo-seg">
+        {SECTIONS.map((s) => (
+          <button key={s.k} className={`wo-seg-btn ${section === s.k ? 'on' : ''}`}
+            onClick={() => setSection(s.k)}>{s.label}</button>
+        ))}
+      </div>
+
+      {section === 'progress' && (
+        <>
+          {focusedEvent && (
+            <div className="wo-focus">
+              <span className="wo-focus-l">
+                <small>Showing</small>
+                <b>{focusedEvent.title}</b>
+              </span>
+              <button className="wo-focus-clear" onClick={clearFocus}>Show all ×</button>
+            </div>
+          )}
+          {list.length === 0 && <p className="cal-hint">No exercises here.</p>}
+          {list.map((c) => {
+            const tgt = nextMilestone(c.best, c.name)
+            return (
+              <button className="wo-row" key={c.name} onClick={() => setOpen(c.name)}>
+                <div className="wo-row-l">
+                  <b>{c.display}</b>
+                  <small>
+                    {c.best > 0
+                      ? `Best ${c.best} lb · ${c.series.length} session${c.series.length === 1 ? '' : 's'}`
+                      : 'No history yet'}
+                  </small>
+                </div>
+                <div className="wo-row-r">
+                  {tgt && <span className="wo-tgt">→ {tgt}</span>}
+                  <span className="cl-chev">›</span>
+                </div>
+              </button>
+            )
+          })}
+        </>
       )}
 
-      {list.length === 0 && (
-        <p className="cal-hint">No exercises here.</p>
+      {section === 'exercises' && (
+        <ExercisesByGroup grouped={grouped} order={groupOrder} onOpen={setOpen} />
       )}
 
-      {list.map((c) => {
-        const tgt = nextMilestone(c.best, c.name)
-        const inc = milestoneIncrement(c.name)
+      {section === 'routines' &&
+        (routineOpen
+          ? <RoutineEditor eventId={routineOpen} events={events} user={user}
+              onBack={() => setRoutineOpen(null)} />
+          : <RoutinesList events={events} onOpen={setRoutineOpen} />)}
+    </>
+  )
+}
+
+// --- Exercises grouped by muscle group ---
+function ExercisesByGroup({ grouped, order, onOpen }) {
+  return (
+    <>
+      {order.map((g) => {
+        const arr = grouped[g]
+        if (!arr || arr.length === 0) return null
         return (
-          <button className="wo-row" key={c.name} onClick={() => setOpen(c.name)}>
-            <div className="wo-row-l">
-              <b>{c.display}</b>
-              <small>
-                {c.best > 0
-                  ? `Best ${c.best} lb · ${c.series.length} session${c.series.length === 1 ? '' : 's'}`
-                  : 'No history yet'}
-              </small>
-            </div>
-            <div className="wo-row-r">
-              {tgt && <span className="wo-tgt">→ {tgt}</span>}
-              <span className="cl-chev">›</span>
-            </div>
-          </button>
+          <div className="wo-group" key={g}>
+            <div className="wo-group-h">{g}<span>{arr.length}</span></div>
+            {arr.map((c) => (
+              <button className="wo-row" key={c.name} onClick={() => onOpen(c.name)}>
+                <div className="wo-row-l">
+                  <b>{c.display}</b>
+                  <small>{c.best > 0 ? `Best ${c.best} lb` : 'No history yet'}</small>
+                </div>
+                <span className="cl-chev">›</span>
+              </button>
+            ))}
+          </div>
         )
       })}
+    </>
+  )
+}
+
+// --- Weekly routines list ---
+const DOW_ORDER = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+const dowKeyOf = (e) => {
+  if (Array.isArray(e.days_of_week) && e.days_of_week.length > 0) return e.days_of_week[0]
+  return new Date(e.starts_at).getDay()
+}
+function RoutinesList({ events, onOpen }) {
+  const gymTemplates = events
+    .filter((e) => e.type === 'gym' && e.recurrence === 'weekly')
+  // build a slot per weekday Mon..Sun
+  const byDow = {}
+  for (const e of gymTemplates) {
+    const d = dowKeyOf(e)
+    const k = d === 0 ? 6 : d - 1  // map Sun→6, Mon→0
+    ;(byDow[k] ||= []).push(e)
+  }
+  return (
+    <>
+      {DOW_ORDER.map((label, i) => {
+        const arr = byDow[i] || []
+        return (
+          <div className="wo-routine-day" key={i}>
+            <div className="wo-routine-day-h">{label}</div>
+            {arr.length === 0 ? (
+              <div className="wo-routine-rest">Rest day</div>
+            ) : (
+              arr.map((e) => (
+                <button className="wo-routine-row" key={e.id} onClick={() => onOpen(e.id)}>
+                  <div className="wo-routine-row-l">
+                    <b>{e.title}</b>
+                    <small>{(e.notes || '').split('\n').filter((l) => /^\d+\.\s/.test(l)).length} exercises</small>
+                  </div>
+                  <span className="cl-chev">›</span>
+                </button>
+              ))
+            )}
+          </div>
+        )
+      })}
+    </>
+  )
+}
+
+// --- Edit the exercise list of one routine (add/remove) ---
+function RoutineEditor({ eventId, events, user, onBack }) {
+  const ev = events.find((e) => e.id === eventId)
+  const [lines, setLines] = useState(() => {
+    if (!ev) return []
+    return (ev.notes || '').split('\n')
+      .map((l) => l.trim()).filter(Boolean)
+  })
+  const [addingEx, setAddingEx] = useState(null)
+  const [busy, setBusy] = useState(false)
+
+  if (!ev) return <button className="back-btn" onClick={onBack}>‹ Back</button>
+
+  const numbered = lines.filter((l) => /^\d+\.\s/.test(l))
+  const info = lines.filter((l) => !/^\d+\.\s/.test(l))
+
+  function removeExercise(idx) {
+    const others = lines.filter((l) => !/^\d+\.\s/.test(l))
+    const kept = numbered.filter((_, i) => i !== idx)
+    const renumbered = kept.map((l, i) => l.replace(/^\d+\.\s*/, `${i + 1}. `))
+    setLines([
+      ...others.slice(0, 1),       // header line (first non-numbered)
+      ...renumbered,
+      ...others.slice(1)           // trailing notes (rest)
+    ])
+  }
+
+  function appendExercise(name, sets, reps) {
+    if (!name) return
+    const setsN = parseInt(sets, 10) || 3
+    const others = lines.filter((l) => !/^\d+\.\s/.test(l))
+    const newLine = `${numbered.length + 1}. ${name} — ${setsN} sets × ${reps || '8-10'} reps`
+    setLines([
+      ...others.slice(0, 1),
+      ...numbered,
+      newLine,
+      ...others.slice(1)
+    ])
+    setAddingEx(null)
+  }
+
+  async function save() {
+    setBusy(true)
+    await supabase.from('events').update({
+      notes: lines.join('\n')
+    }).eq('id', eventId)
+    setBusy(false)
+    onBack()
+  }
+
+  return (
+    <>
+      <button className="back-btn" onClick={onBack}>‹ Back to routines</button>
+      <div className="md-hero">
+        <div className="md-name">{ev.title}</div>
+        <div className="md-status">{numbered.length} exercise{numbered.length === 1 ? '' : 's'}</div>
+      </div>
+
+      <div className="wo-edit-list">
+        {numbered.map((line, i) => (
+          <div className="wo-edit-row" key={i}>
+            <span>{line.replace(/^\d+\.\s*/, `${i + 1}. `)}</span>
+            <button className="wo-edit-del" onClick={() => removeExercise(i)} title="Remove">×</button>
+          </div>
+        ))}
+        {!addingEx && (
+          <button className="cl-add-exercise"
+            onClick={() => setAddingEx({ name: '', sets: '3', reps: '8-10' })}>
+            + Add an exercise
+          </button>
+        )}
+        {addingEx && (
+          <div className="cl-add-ex-form">
+            <div className="cl-add-ex-h">Add to {ev.title}</div>
+            <div className="fld">
+              <label>Name</label>
+              <input autoFocus value={addingEx.name}
+                placeholder="e.g. Pull-ups"
+                onChange={(e) => setAddingEx((s) => ({ ...s, name: e.target.value }))} />
+            </div>
+            <div className="fld row2">
+              <div>
+                <label>Sets</label>
+                <input inputMode="numeric" value={addingEx.sets}
+                  onChange={(e) => setAddingEx((s) => ({ ...s, sets: e.target.value }))} />
+              </div>
+              <div>
+                <label>Reps</label>
+                <input value={addingEx.reps}
+                  onChange={(e) => setAddingEx((s) => ({ ...s, reps: e.target.value }))} />
+              </div>
+            </div>
+            <div className="sheet-actions">
+              <button className="btn ghost" onClick={() => setAddingEx(null)}>Cancel</button>
+              <button className="btn primary"
+                onClick={() => appendExercise(addingEx.name.trim(), addingEx.sets, addingEx.reps)}>
+                Add
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="sheet-actions" style={{ marginTop: 14 }}>
+        <button className="btn ghost" onClick={onBack}>Discard changes</button>
+        <button className="btn primary" disabled={busy} onClick={save}>{busy ? '…' : 'Save'}</button>
+      </div>
     </>
   )
 }

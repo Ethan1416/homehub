@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useEvents, useClaudeStatus, useStreak } from '../lib/useData.js'
+import { ymd } from '../lib/date.js'
 import { isConfigured } from '../supabaseClient.js'
 import EventModal from '../components/EventModal.jsx'
 import ChecklistSheet from '../components/ChecklistSheet.jsx'
@@ -86,7 +87,8 @@ export default function PhoneView() {
             setWorkoutNav({ ex, nonce: Date.now() })
             setTab('workout')
             setModal(null)
-          }} />
+          }}
+          onBuildCustom={() => setModal({ custom: ymd(new Date(selected)) })} />
       )}
       {modal?.gymPicker && (
         <RoutinePicker day={new Date(modal.gymPicker)} user={user}

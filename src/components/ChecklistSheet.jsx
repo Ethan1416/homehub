@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { parseEvent, completion, defaultRestFor, EFFORT_LABELS } from '../lib/checklist.js'
 import { useProgress, saveProgress, setGymOverride, clearGymOverride } from '../lib/useData.js'
 import { useEvents } from '../lib/useData.js'
+import { supabase } from '../supabaseClient.js'
 import { ymd, fmtTime } from '../lib/date.js'
 import { exerciseKey } from '../lib/workouts.js'
 
@@ -18,7 +19,7 @@ const EFFORT_OPTS = [
 // "3. Hip thrust — 3 sets × 10–12 reps. Glutes." → "Hip thrust"
 const stripNum = (label) => label.replace(/^\d+\.\s*/, '').split('—')[0].trim()
 
-export default function ChecklistSheet({ event, day, user = 'ethan', onClose, onEdit, onOpenExercise }) {
+export default function ChecklistSheet({ event, day, user = 'ethan', onClose, onEdit, onOpenExercise, onBuildCustom }) {
   const parsed = parseEvent(event)
   const logDate = ymd(day)
   const { byEvent } = useProgress(logDate, user)
@@ -103,6 +104,35 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
   async function swap(toEventId) { await setGymOverride(logDate, toEventId, user); setPickRoutine(false); onClose() }
   async function resetSwap()    { await clearGymOverride(logDate, user); setPickRoutine(false); onClose() }
 
+  // ----- add an exercise to this workout (template-level or one-off) -----
+  const [addEx, setAddEx] = useState(null) // null | { name, sets, reps, scope }
+  const dowName = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][day.getDay()]
+  async function commitAddExercise() {
+    if (!addEx?.name?.trim()) { setAddEx(null); return }
+    const setsN = parseInt(addEx.sets, 10) || 3
+    const repsR = (addEx.reps || '8-10').trim()
+    const nextIdx = (event.notes || '').split('\n').filter((l) => /^\d+\.\s/.test(l)).length + 1
+    const newLine = `${nextIdx}. ${addEx.name.trim()} — ${setsN} sets × ${repsR} reps`
+    const newNotes = ((event.notes || '').trimEnd() + '\n' + newLine).trim()
+    const goingOneOff = addEx.scope === 'once' && event.recurrence === 'weekly'
+
+    if (goingOneOff) {
+      const cs = new Date(day); cs.setHours(12, 0, 0, 0)
+      const ce = new Date(cs); ce.setHours(13, 0, 0, 0)
+      const { data } = await supabase.from('events').insert([{
+        title: event.title + ' (today)',
+        owner: event.owner, type: 'gym', recurrence: 'none',
+        starts_at: cs.toISOString(), ends_at: ce.toISOString(),
+        notes: newNotes
+      }]).select('id')
+      if (data?.[0]) await setGymOverride(logDate, data[0].id, user)
+    } else {
+      await supabase.from('events').update({ notes: newNotes }).eq('id', event.id)
+    }
+    setAddEx(null)
+    onClose()
+  }
+
   // total sets to render = max(prescribed, anything already logged)
   function effectiveSetCount(g) {
     let max = g.sets - 1
@@ -138,6 +168,12 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
         {pickRoutine && (
           <div className="cl-pick">
             <div className="cl-pick-h">Pick a gym routine for {day.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}</div>
+            {onBuildCustom && (
+              <button className="cl-pick-row custom" onClick={() => { setPickRoutine(false); onBuildCustom() }}>
+                <b>+ Build a custom workout</b>
+                <small>Blank slate — set your own exercises, sets, and reps</small>
+              </button>
+            )}
             {gymTemplates.map((g) => (
               <button className="cl-pick-row" key={g.id} onClick={() => swap(g.id)}>
                 <b>{g.title}</b>
@@ -273,6 +309,58 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
               </div>
             )
           })}
+
+          {parsed.kind === 'gym' && !addEx && (
+            <button className="cl-add-exercise"
+              onClick={() => setAddEx({ name: '', sets: '3', reps: '8-10', scope: event.recurrence === 'weekly' ? 'permanent' : 'permanent' })}>
+              + Add an exercise
+            </button>
+          )}
+
+          {addEx && (
+            <div className="cl-add-ex-form">
+              <div className="cl-add-ex-h">Add an exercise</div>
+              <div className="fld">
+                <label>Name</label>
+                <input autoFocus placeholder="e.g. Hanging leg raises"
+                  value={addEx.name}
+                  onChange={(e) => setAddEx((s) => ({ ...s, name: e.target.value }))} />
+              </div>
+              <div className="fld row2">
+                <div>
+                  <label>Sets</label>
+                  <input inputMode="numeric" value={addEx.sets}
+                    onChange={(e) => setAddEx((s) => ({ ...s, sets: e.target.value }))} />
+                </div>
+                <div>
+                  <label>Reps</label>
+                  <input value={addEx.reps} placeholder="8-10"
+                    onChange={(e) => setAddEx((s) => ({ ...s, reps: e.target.value }))} />
+                </div>
+              </div>
+              {event.recurrence === 'weekly' && (
+                <div className="fld">
+                  <label>Add to {dowName} routine</label>
+                  <div className="chips">
+                    <button className={`chip ${addEx.scope === 'permanent' ? 'on' : ''}`}
+                      style={{ color: 'var(--accent)' }}
+                      onClick={() => setAddEx((s) => ({ ...s, scope: 'permanent' }))}>
+                      ↻ Every {dowName}
+                    </button>
+                    <button className={`chip ${addEx.scope === 'once' ? 'on' : ''}`}
+                      style={{ color: 'var(--accent)' }}
+                      onClick={() => setAddEx((s) => ({ ...s, scope: 'once' }))}>
+                      Just today
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="sheet-actions">
+                <button className="btn ghost" onClick={() => setAddEx(null)}>Cancel</button>
+                <button className="btn primary" onClick={commitAddExercise}>Add</button>
+              </div>
+            </div>
+          )}
 
           {parsed.kind === 'meal' && (
             <div className="fld" style={{ marginTop: 14 }}>

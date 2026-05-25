@@ -4,12 +4,15 @@ import { supabase, isConfigured } from '../supabaseClient.js'
 import { setGymOverride } from '../lib/useData.js'
 
 const BLANK_ROW = { name: '', sets: '3', reps: '8-10' }
+const DOW_FULL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 
 export default function CustomWorkoutBuilder({ day, user = 'ethan', onClose }) {
   const [title, setTitle] = useState('Custom workout')
   const [rows, setRows] = useState([{ ...BLANK_ROW }])
   const [trailing, setTrailing] = useState('')
+  const [scope, setScope] = useState('once')  // 'once' | 'recurring'
   const [busy, setBusy] = useState(false)
+  const dowName = DOW_FULL[day.getDay()]
 
   const update = (i, k, v) => setRows((rs) => rs.map((r, j) => j === i ? { ...r, [k]: v } : r))
   const addRow = () => setRows((rs) => [...rs, { ...BLANK_ROW }])
@@ -31,16 +34,21 @@ export default function CustomWorkoutBuilder({ day, user = 'ethan', onClose }) {
     const startISO = new Date(day); startISO.setHours(12, 0, 0, 0)
     const endISO = new Date(startISO); endISO.setHours(13, 0, 0, 0)
 
+    const recurring = scope === 'recurring'
     const { data, error } = await supabase
       .from('events').insert([{
         title: `🏋️ Gym — ${title}`,
-        owner: user, type: 'gym', recurrence: 'none',
+        owner: user, type: 'gym',
+        recurrence: recurring ? 'weekly' : 'none',
+        days_of_week: recurring ? [day.getDay()] : null,
         starts_at: startISO.toISOString(),
         ends_at: endISO.toISOString(),
         notes
       }]).select('id')
     if (error || !data?.[0]) { setBusy(false); return }
-    await setGymOverride(ymd(day), data[0].id, user)
+    // Only set a one-day override when it's a one-off. Recurring shows up
+    // naturally on every matching weekday.
+    if (!recurring) await setGymOverride(ymd(day), data[0].id, user)
     onClose()
   }
 
@@ -52,6 +60,19 @@ export default function CustomWorkoutBuilder({ day, user = 'ethan', onClose }) {
           <label>Title</label>
           <input value={title} onChange={(e) => setTitle(e.target.value)}
             placeholder="Core + Walk · Push day · Pull · etc." />
+        </div>
+        <div className="fld">
+          <label>Schedule</label>
+          <div className="chips">
+            <button className={`chip ${scope === 'once' ? 'on' : ''}`}
+              style={{ color: 'var(--accent)' }} onClick={() => setScope('once')}>
+              Just this {dowName}
+            </button>
+            <button className={`chip ${scope === 'recurring' ? 'on' : ''}`}
+              style={{ color: 'var(--accent)' }} onClick={() => setScope('recurring')}>
+              ↻ Every {dowName}
+            </button>
+          </div>
         </div>
         <div className="cw-list">
           <div className="cw-h">

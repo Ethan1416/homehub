@@ -269,6 +269,25 @@ export function exerciseHistory(catalogEntry, allRows) {
   return { series, best, observedRate }
 }
 
+// Rough muscle-group classification for browsing exercises by area.
+const MUSCLE_RULES = [
+  [/incline press|flat press|decline press|bench press|cable fly|chest fly|pec deck|machine chest press|dips/i, 'Chest'],
+  [/lat pulldown|pull-?up|chest-?supported row|t-?bar row|seated cable row|seated row|cable row|straight-?arm pulldown|machine row|db row|dumbbell row|shrug/i, 'Back'],
+  [/overhead press|seated db press|seated machine press|lateral raise|rear delt|reverse pec|shoulder press|arnold press/i, 'Shoulders'],
+  [/db curl|cable curl|preacher curl|incline.* curl|barbell curl|ez.* curl|hammer curl|incline db/i, 'Biceps'],
+  [/pushdown|tricep|overhead .*extension|overhead extension|skullcrusher|close-?grip bench/i, 'Triceps'],
+  [/squat|leg press|leg extension|bulgarian|lunge/i, 'Quads'],
+  [/leg curl|seated leg curl|lying leg curl|rdl|romanian|stiff-?leg/i, 'Hamstrings'],
+  [/hip thrust|glute|hip abduction|hip adduction|hyperextension|45.? back/i, 'Glutes / Hips'],
+  [/calf|calf press|calf raise|standing calf|seated calf/i, 'Calves'],
+  [/hanging leg|knee raise|cable crunch|crunch|sit[ \-]?up|ab wheel|plank|pallof|anti-rotation/i, 'Core'],
+  [/walk|incline walk|treadmill|cardio|sled|bike|row erg|run/i, 'Cardio']
+]
+export function muscleGroupFor(label) {
+  for (const [re, g] of MUSCLE_RULES) if (re.test(label)) return g
+  return 'Other'
+}
+
 // Two-week variability snapshot for an exercise. Returns:
 //   { trend: 'up'|'down'|'flat'|null,
 //     weightPct, volumePct,        // % change between earliest and latest in window
