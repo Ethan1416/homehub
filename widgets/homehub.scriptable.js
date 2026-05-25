@@ -1,27 +1,45 @@
-// HomeHub iOS Home-Screen Widget
-// ──────────────────────────────
+// HomeHub iOS Home-Screen Widget — interactive
+// ────────────────────────────────────────────
 // Shows the next "not yet moved past" task for today (gym/meal/other).
-// Done OR skipped items both count as "moved past", so the widget advances
-// when you skip something.
+// Tap zones:
+//   ✓ (left)   — mark the current task DONE      (advances widget)
+//   ↷ (right)  — mark the current task SKIPPED   (advances widget)
+//   center     — open the HomeHub PWA in Safari
+//
+// Tapping ✓ or ↷ briefly opens Scriptable, fires a Supabase upsert, and
+// returns. The widget refreshes on its next system tick (within ~15 min,
+// or immediately if you tap it again).
 //
 // Install:
 //   1. Install Scriptable (free, App Store).
 //   2. New script → paste this whole file → name it "HomeHub".
-//   3. Long-press home screen → + → Scriptable → small or medium → choose
-//      "HomeHub" in the widget config, "When Interacting → Run Script".
-//   4. Edit USER below to "ethan" or "justin".
+//   3. Long-press home screen → + → Scriptable → pick Medium → choose
+//      "HomeHub" in widget config.
+//   4. Edit USER below to 'ethan' or 'justin'.
 
 // ── config ─────────────────────────────────────────────────────────────
-const USER = 'ethan'                  // ← change to 'justin' if Justin installs it
+const USER = 'ethan'
 const SUPABASE_URL = 'https://kiuxegztynurpthxsnvr.supabase.co'
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpdXhlZ3p0eW51cnB0aHhzbnZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTgxODksImV4cCI6MjA5NDc3NDE4OX0.XLYO2XCmXtfQvzD1tJGgdYZrqmMSBzsQBnXXZfz31ss'
 const APP_URL = 'https://ethan1416.github.io/homehub/'
+const SCRIPT_NAME = 'HomeHub' // must match the name you gave the script in Scriptable
 
 // ── tiny supabase helpers ──────────────────────────────────────────────
-async function sb(path, params = '') {
+async function sbGet(path, params = '') {
   const req = new Request(`${SUPABASE_URL}/rest/v1/${path}${params ? '?' + params : ''}`)
   req.headers = { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` }
   return req.loadJSON()
+}
+async function sbUpsert(path, row, onConflict) {
+  const req = new Request(`${SUPABASE_URL}/rest/v1/${path}?on_conflict=${onConflict}`)
+  req.method = 'POST'
+  req.headers = {
+    apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}`,
+    'Content-Type': 'application/json',
+    Prefer: 'resolution=merge-duplicates,return=minimal'
+  }
+  req.body = JSON.stringify(row)
+  await req.loadString()
 }
 
 // ── checklist parsing (mirrored from src/lib/checklist.js) ─────────────
@@ -56,7 +74,6 @@ function parseEvent(ev) {
 }
 const stripNum = (label) => label.replace(/^\d+\.\s*/, '').split('—')[0].trim()
 
-// ── data load: today's events + progress ───────────────────────────────
 function ymd(d) {
   const p = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
@@ -69,32 +86,28 @@ function occursOn(ev, d) {
   return ymd(start) === dayKey
 }
 
+// ── shared: load today's events + progress and pick the next open item ─
 async function loadNext() {
   const today = new Date()
   const todayKey = ymd(today)
   const [events, progress, overrides] = await Promise.all([
-    sb('events', 'select=*'),
-    sb('progress', `select=*&log_date=eq.${todayKey}&user_id=eq.${USER}`),
-    sb('gym_override', `select=*&log_date=eq.${todayKey}&user_id=eq.${USER}`)
+    sbGet('events', 'select=*'),
+    sbGet('progress', `select=*&log_date=eq.${todayKey}&user_id=eq.${USER}`),
+    sbGet('gym_override', `select=*&log_date=eq.${todayKey}&user_id=eq.${USER}`)
   ])
-  // Apply gym override (one routine can be swapped for the day)
   const overrideId = overrides[0]?.event_id
   const overrideEv = overrideId ? events.find((e) => e.id === overrideId) : null
 
   let todaysEvents = events.filter((e) => occursOn(e, today))
   if (overrideEv) {
-    // remove any gym-typed events from today, insert the override
     todaysEvents = todaysEvents.filter((e) => e.type !== 'gym').concat([overrideEv])
   }
-  // sort by start time
   todaysEvents.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at))
 
-  // bucket progress by event
   const byEvent = {}
-  for (const r of progress) {
-    ((byEvent[r.event_id] ||= {}))[r.item_key] = r
-  }
+  for (const r of progress) ((byEvent[r.event_id] ||= {}))[r.item_key] = r
   const moved = (r) => !!(r && (r.done || r.skipped))
+
   function completion(parsed, p) {
     let done = 0, total = 0
     for (const g of parsed.groups) {
@@ -112,20 +125,16 @@ async function loadNext() {
     for (const g of parsed.groups) {
       if (g.sets > 0) {
         for (let s = 0; s < g.sets; s++) {
-          if (!moved(p[`${g.key}#${s}`])) return { label: stripNum(g.label), setNum: s + 1, totalSets: g.sets }
+          const k = `${g.key}#${s}`
+          if (!moved(p[k])) return { label: stripNum(g.label), itemKey: k, setNum: s + 1, totalSets: g.sets }
         }
       } else if (!moved(p[g.key])) {
-        return { label: g.label, setNum: 0, totalSets: 0 }
+        return { label: g.label, itemKey: g.key, setNum: 0, totalSets: 0 }
       }
     }
     return null
   }
 
-  // ── Pick "next" — strictly chronological ─────────────────────────────
-  // Show the first task of the day with anything still open. The widget only
-  // advances when the current task is marked done OR skipped (both count as
-  // "moved past"). Wall-clock time is irrelevant — a missed 7am breakfast
-  // stays on the widget until you tap skip or check it off.
   let next = null
   let totalDone = 0, totalAll = 0
   for (const e of todaysEvents) {
@@ -143,6 +152,24 @@ async function loadNext() {
   return { next, todayKey, totalDone, totalAll, eventCount: todaysEvents.length }
 }
 
+// ── action handler (run when widget tap passes ?action=...) ────────────
+async function applyAction(action, params) {
+  const eventId = params.event
+  const itemKey = params.item
+  const logDate = params.day || ymd(new Date())
+  if (!eventId || !itemKey) return
+  const row = {
+    event_id: eventId,
+    log_date: logDate,
+    item_key: itemKey,
+    user_id: USER,
+    updated_at: new Date().toISOString(),
+    done: action === 'done',
+    skipped: action === 'skip'
+  }
+  await sbUpsert('progress', row, 'event_id,log_date,item_key,user_id')
+}
+
 // ── widget rendering ───────────────────────────────────────────────────
 function fmtTime(d) {
   let h = d.getHours(), m = d.getMinutes()
@@ -151,11 +178,20 @@ function fmtTime(d) {
   return m === 0 ? `${h}${ap}` : `${h}:${String(m).padStart(2, '0')}${ap}`
 }
 
+function actionUrl(action, state) {
+  if (!state.next) return APP_URL
+  const { event, open } = state.next
+  const params = new URLSearchParams({
+    action, event: event.id, item: open.itemKey, day: state.todayKey
+  })
+  return `scriptable:///run/${encodeURIComponent(SCRIPT_NAME)}?${params.toString()}`
+}
+
 function buildWidget(state) {
   const w = new ListWidget()
   w.url = APP_URL
   w.backgroundColor = new Color('#0e1117')
-  w.setPadding(14, 14, 14, 14)
+  w.setPadding(12, 12, 12, 12)
 
   // Header
   const head = w.addStack()
@@ -168,7 +204,7 @@ function buildWidget(state) {
     pct.font = Font.boldSystemFont(10)
     pct.textColor = new Color('#7c83a3')
   }
-  w.addSpacer(6)
+  w.addSpacer(4)
 
   if (!state.next) {
     if (state.eventCount === 0) {
@@ -190,19 +226,57 @@ function buildWidget(state) {
   // Event title
   const { event, open, done, total, startTime } = state.next
   const title = w.addText(event.title)
-  title.font = Font.boldSystemFont(15)
+  title.font = Font.boldSystemFont(14)
   title.textColor = new Color('#e8ebf5')
   title.lineLimit = 1
+  w.addSpacer(6)
 
-  // Next task line
-  w.addSpacer(4)
-  const taskText = open.totalSets > 0
-    ? `Next: ${open.label} — set ${open.setNum}/${open.totalSets}`
-    : `Next: ${open.label}`
-  const t = w.addText(taskText)
-  t.font = Font.semiboldSystemFont(13)
-  t.textColor = new Color('#7c9cff')
-  t.lineLimit = 2
+  // ── Interactive task row: [✓] [label] [↷] ─────────────────────────
+  const row = w.addStack()
+  row.layoutHorizontally()
+  row.centerAlignContent()
+  row.spacing = 8
+
+  // Left: ✓ done button
+  const doneBtn = row.addStack()
+  doneBtn.layoutVertically()
+  doneBtn.centerAlignContent()
+  doneBtn.backgroundColor = new Color('#1b3a2a')
+  doneBtn.cornerRadius = 10
+  doneBtn.setPadding(8, 12, 8, 12)
+  doneBtn.url = actionUrl('done', state)
+  const dT = doneBtn.addText('✓')
+  dT.font = Font.boldSystemFont(20)
+  dT.textColor = new Color('#5fd0a0')
+  dT.centerAlignText()
+
+  // Center: task label (taps open PWA)
+  const center = row.addStack()
+  center.layoutVertically()
+  center.url = APP_URL
+  center.size = new Size(0, 44)
+  const lbl = center.addText(open.label)
+  lbl.font = Font.semiboldSystemFont(13)
+  lbl.textColor = new Color('#e8ebf5')
+  lbl.lineLimit = 1
+  if (open.totalSets > 0) {
+    const sub = center.addText(`set ${open.setNum}/${open.totalSets}`)
+    sub.font = Font.systemFont(11)
+    sub.textColor = new Color('#7c9cff')
+  }
+
+  // Right: ↷ skip button
+  const skipBtn = row.addStack()
+  skipBtn.layoutVertically()
+  skipBtn.centerAlignContent()
+  skipBtn.backgroundColor = new Color('#2a2a35')
+  skipBtn.cornerRadius = 10
+  skipBtn.setPadding(8, 12, 8, 12)
+  skipBtn.url = actionUrl('skip', state)
+  const sT = skipBtn.addText('↷')
+  sT.font = Font.boldSystemFont(20)
+  sT.textColor = new Color('#a8afc7')
+  sT.centerAlignText()
 
   // Bottom: time + progress
   w.addSpacer()
@@ -219,12 +293,20 @@ function buildWidget(state) {
   return w
 }
 
-// ── run ────────────────────────────────────────────────────────────────
-const state = await loadNext()
-const widget = buildWidget(state)
-if (config.runsInWidget) {
-  Script.setWidget(widget)
+// ── entry point ────────────────────────────────────────────────────────
+const params = args.queryParameters || {}
+if (params.action === 'done' || params.action === 'skip') {
+  // Came from a widget tap. Fire the update and exit immediately so the
+  // Scriptable app barely flashes.
+  await applyAction(params.action, params)
+  Script.complete()
 } else {
-  await widget.presentMedium()
+  const state = await loadNext()
+  const widget = buildWidget(state)
+  if (config.runsInWidget) {
+    Script.setWidget(widget)
+  } else {
+    await widget.presentMedium()
+  }
+  Script.complete()
 }
-Script.complete()
