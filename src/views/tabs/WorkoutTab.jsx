@@ -161,17 +161,6 @@ function ExerciseChart({ series, milestones, color = '#5b6ef5' }) {
 }
 
 function ExerciseDetail({ ex, allRows, onBack }) {
-  // DEBUG: isolate. If this minimal version doesn't crash, the issue is in the
-  // (currently disabled) rest of the function below.
-  return (
-    <>
-      <button className="back-btn" onClick={onBack}>‹ Back</button>
-      <div style={{padding:14,background:'#dfe',color:'#060'}}>
-        DEBUG MIN: {ex?.display || '?'} · rows={allRows?.length ?? 0}
-      </div>
-    </>
-  )
-  // eslint-disable-next-line no-unreachable
   const { series, best, observedRate } = exerciseHistory(ex, allRows)
   const milestones = milestonesFor(ex.name, best, observedRate)
   const upcoming = milestones
@@ -184,9 +173,6 @@ function ExerciseDetail({ ex, allRows, onBack }) {
   return (
     <>
       <button className="back-btn" onClick={onBack}>‹ Back</button>
-      <div style={{padding:14, background:'#ffd', color:'#600', fontSize:12, marginBottom:10}}>
-        DEBUG ex={ex.display} best={best} ms={milestones.length} series={series.length}
-      </div>
       <div className="md-hero">
         <div className="md-name">{ex.display}</div>
         <div className="md-status">
@@ -279,10 +265,6 @@ const SECTIONS = [
 ]
 
 export default function WorkoutTab({ events, user = 'ethan', focusedEventId, clearFocus, navReq }) {
-  if (typeof window !== 'undefined') {
-    window.__wo = (window.__wo || 0) + 1
-    document.title = `r=${window.__wo} open=${typeof window.__wo_open} events=${events.length}`
-  }
   const [allRows, setAllRows] = useState([])
   const [open, setOpen] = useState(null) // exercise name (normalized) when detail open
   const [section, setSection] = useState('exercises')
@@ -336,16 +318,8 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
     })
   }, [filteredCatalog, allRows])
 
-  if (open && catalog[open]) {
-    return <ExerciseDetail ex={catalog[open]} allRows={allRows}
-      onBack={() => setOpen(null)} />
-  }
-  if (open && !catalog[open]) {
-    // catalog briefly out of sync; render nothing and let the next pass settle.
-    return null
-  }
-
-  // Group exercises by muscle group for the Exercises sub-page
+  // Group exercises by muscle group for the Exercises sub-page.
+  // IMPORTANT: this hook must be called every render (no early return above it).
   const grouped = useMemo(() => {
     const g = {}
     for (const c of list) {
@@ -356,6 +330,16 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
   }, [list])
   const groupOrder = ['Chest','Back','Shoulders','Biceps','Triceps','Quads',
     'Hamstrings','Glutes / Hips','Calves','Core','Cardio','Other']
+
+  // After all hooks, safe to early-return for the exercise-detail view.
+  if (open && catalog[open]) {
+    return <ExerciseDetail ex={catalog[open]} allRows={allRows}
+      onBack={() => setOpen(null)} />
+  }
+  if (open && !catalog[open]) {
+    // catalog briefly out of sync; render nothing and let the next pass settle.
+    return null
+  }
 
   return (
     <>

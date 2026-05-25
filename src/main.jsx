@@ -6,16 +6,6 @@ import TvView from './views/TvView.jsx'
 import UserGate from './components/UserGate.jsx'
 import './styles.css'
 
-function showErr(m) {
-  let d = document.getElementById('__err')
-  if (!d) { d = document.createElement('div'); d.id='__err'
-    d.style.cssText='position:fixed;inset:0;z-index:9999;background:#300;color:#fff;font:12px monospace;padding:18px;white-space:pre-wrap;overflow:auto'
-    document.body.appendChild(d) }
-  d.textContent = 'ERROR: ' + m
-}
-window.addEventListener('error', (e) => showErr((e.message||'') + '\n' + (e.error?.stack||'')))
-window.addEventListener('unhandledrejection', (e) => showErr('promise: ' + (e.reason?.stack || e.reason)))
-
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <HashRouter>
