@@ -161,6 +161,17 @@ function ExerciseChart({ series, milestones, color = '#5b6ef5' }) {
 }
 
 function ExerciseDetail({ ex, allRows, onBack }) {
+  // DEBUG: isolate. If this minimal version doesn't crash, the issue is in the
+  // (currently disabled) rest of the function below.
+  return (
+    <>
+      <button className="back-btn" onClick={onBack}>‹ Back</button>
+      <div style={{padding:14,background:'#dfe',color:'#060'}}>
+        DEBUG MIN: {ex?.display || '?'} · rows={allRows?.length ?? 0}
+      </div>
+    </>
+  )
+  // eslint-disable-next-line no-unreachable
   const { series, best, observedRate } = exerciseHistory(ex, allRows)
   const milestones = milestonesFor(ex.name, best, observedRate)
   const upcoming = milestones
