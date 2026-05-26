@@ -236,36 +236,35 @@ struct HHWidgetView: View {
                     .foregroundStyle(HHColor.muted)
             }
             if let weight = next.lastSetWeight, !weight.isEmpty {
-                Text("VS")
-                    .font(.system(size: 11, weight: .heavy))
+                Text("PR @10")
+                    .font(.system(size: 10, weight: .black))
                     .tracking(1.0)
                     .foregroundStyle(HHColor.dim)
-                Text(lastSetText(next))
-                    .font(.system(size: 12, weight: .heavy))
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 1)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 3)
+                            .stroke(HHColor.dim.opacity(0.5), lineWidth: 1)
+                    )
+                Text(prText(next))
+                    .font(.system(size: 13, weight: .heavy))
                     .foregroundStyle(HHColor.heatSoft)
             }
             Spacer(minLength: 0)
         }
     }
 
-    private func lastSetText(_ next: OpenItem) -> AttributedString {
-        var s = AttributedString("last ")
+    // Builds "80 × 10" — the heaviest weight you've ever hit 10+ reps on.
+    private func prText(_ next: OpenItem) -> AttributedString {
+        var s = AttributedString(next.lastSetWeight ?? "")
         s.foregroundColor = HHColor.heatSoft
-        var w = AttributedString(next.lastSetWeight ?? "")
-        w.foregroundColor = HHColor.heatSoft
-        s.append(w)
         if let reps = next.lastSetReps, !reps.isEmpty {
-            var x = AttributedString("×")
+            var x = AttributedString(" × ")
             x.foregroundColor = HHColor.burn
             s.append(x)
             var r = AttributedString(reps)
             r.foregroundColor = HHColor.heatSoft
             s.append(r)
-        }
-        if let effort = next.lastSetEffort, !effort.isEmpty, effort != "nothing" {
-            var e = AttributedString(" \(effort.replacingOccurrences(of: "_", with: " "))")
-            e.foregroundColor = HHColor.heatSoft
-            s.append(e)
         }
         return s
     }

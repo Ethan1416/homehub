@@ -47,26 +47,32 @@ if [[ $DO_MAC -eq 1 ]]; then
 fi
 
 if [[ $DO_IOS -eq 1 ]]; then
-  # NB: 'unavailable' also contains 'available' — match the exact column.
-  if xcrun devicectl list devices 2>&1 | awk -v id="$IPHONE_ID" '$0 ~ id && /\bavailable\b/ {found=1} END{exit !found}'; then
+  # Confirm an iPhone is online (connected or available). We use the hardware
+  # ECID for xcodebuild — it doesn't change even when devicectl's pairing UUID
+  # rotates between sessions. The pairing UUID in $3 is NOT what xcodebuild
+  # wants.
+  if xcrun devicectl list devices 2>/dev/null \
+      | awk '/^iPhone/ && ($4 == "connected" || $4 == "available") {found=1} END{exit !found}'; then
+    DETECTED_ID="$IPHONE_ID"
+    echo "▶ iPhone online — building for $DETECTED_ID"
     echo "▶ building for iPhone"
     xcodebuild -project HomeHub.xcodeproj -scheme HomeHub \
       -configuration Release \
-      -destination "id=$IPHONE_ID" \
+      -destination "id=$DETECTED_ID" \
       -derivedDataPath ./build-ios \
       -allowProvisioningUpdates build \
       -quiet
     echo "▶ installing on iPhone"
     xcrun devicectl device install app \
-      --device "$IPHONE_ID" \
+      --device "$DETECTED_ID" \
       build-ios/Build/Products/Release-iphoneos/HomeHub.app \
       > /dev/null
     echo "▶ launch once to register the new widget extension"
     xcrun devicectl device process launch \
-      --device "$IPHONE_ID" \
+      --device "$DETECTED_ID" \
       com.ethan.homehub > /dev/null 2>&1 || true
   else
-    echo "⚠ iPhone $IPHONE_ID not connected; skipping iOS build"
+    echo "⚠ no iPhone connected (run 'xcrun devicectl list devices' to check); skipping iOS build"
   fi
 fi
 

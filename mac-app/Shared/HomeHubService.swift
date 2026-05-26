@@ -294,24 +294,42 @@ enum HomeHubService {
                 case .meal: kindStr = "meal"
                 case .simple: kindStr = "simple"
                 }
-                // Last-set anchor for gym exercises: look back through past 30
-                // days of progress on this exercise's group prefix (eg "g0#")
-                // and return the most recent row with a weight.
+                // PR anchor for gym exercises: heaviest weight ever logged on
+                // this exercise where reps >= 10 (any "10+ rep best" PR is the
+                // most motivating benchmark to beat — heavier than just "last
+                // session"). Looks back through past 30 days for this exercise
+                // by event_id + group prefix (eg "g0#").
                 var lastWeight: String? = nil
                 var lastReps: String? = nil
                 var lastEffort: String? = nil
                 if kindStr == "gym" {
                     let prefix = open.key.split(separator: "#").first.map(String.init) ?? ""
                     let candidates = allRecentProgress
-                        .filter { $0.event_id == e.id
-                            && $0.log_date != dayKey
-                            && $0.item_key.hasPrefix("\(prefix)#")
-                            && ($0.done ?? false) }
-                        .sorted { $0.log_date > $1.log_date }
-                    if let last = candidates.first(where: { ($0.weight ?? "").isEmpty == false }) {
-                        lastWeight = last.weight
-                        lastReps = last.reps
-                        lastEffort = last.effort
+                        .filter { row in
+                            guard row.event_id == e.id else { return false }
+                            guard row.item_key.hasPrefix("\(prefix)#") else { return false }
+                            guard (row.done ?? false) else { return false }
+                            guard let w = row.weight, !w.isEmpty,
+                                  Double(w.trimmingCharacters(in: .whitespaces)) != nil else { return false }
+                            guard let r = row.reps,
+                                  let ri = Int(r.trimmingCharacters(in: .whitespaces)),
+                                  ri >= 10 else { return false }
+                            return true
+                        }
+                        .sorted { a, b in
+                            let wa = Double(a.weight ?? "") ?? 0
+                            let wb = Double(b.weight ?? "") ?? 0
+                            if wa != wb { return wa > wb }
+                            // tie-break: more reps wins, then more recent
+                            let ra = Int(a.reps ?? "") ?? 0
+                            let rb = Int(b.reps ?? "") ?? 0
+                            if ra != rb { return ra > rb }
+                            return a.log_date > b.log_date
+                        }
+                    if let pr = candidates.first {
+                        lastWeight = pr.weight
+                        lastReps = pr.reps
+                        lastEffort = pr.effort
                     }
                 }
                 next = OpenItem(eventId: e.id, eventTitle: e.title,
