@@ -1,0 +1,28 @@
+{
+  "" : {
+    "diagnostics" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubWidget-master.dia",
+    "emit-module-dependencies" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubWidget-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubWidget-master-emit-module.dia",
+    "swift-dependencies" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubWidget-master.swiftdeps"
+  },
+  "/Users/ethangrucza/homehub/mac-app/Shared/HomeHubService.swift" : {
+    "const-values" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubService.swiftconstvalues",
+    "dependencies" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubService.d",
+    "diagnostics" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubService.dia",
+    "index-unit-output-path" : "/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubService.o",
+    "llvm-bc" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubService.bc",
+    "object" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubService.o",
+    "swift-dependencies" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubService.swiftdeps",
+    "swiftmodule" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubService~partial.swiftmodule"
+  },
+  "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift" : {
+    "const-values" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubWidget.swiftconstvalues",
+    "dependencies" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubWidget.d",
+    "diagnostics" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubWidget.dia",
+    "index-unit-output-path" : "/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubWidget.o",
+    "llvm-bc" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubWidget.bc",
+    "object" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubWidget.o",
+    "swift-dependencies" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubWidget.swiftdeps",
+    "swiftmodule" : "/Users/ethangrucza/homehub/mac-app/build/Build/Intermediates.noindex/HomeHub.build/Debug/HomeHubWidget.build/Objects-normal/arm64/HomeHubWidget~partial.swiftmodule"
+  }
+}

@@ -183,10 +183,10 @@ function fmtTime(d) {
 function actionUrl(action, state) {
   if (!state.next) return APP_URL
   const { event, open } = state.next
-  const params = new URLSearchParams({
-    action, event: event.id, item: open.itemKey, day: state.todayKey
-  })
-  return `scriptable:///run/${encodeURIComponent(SCRIPT_NAME)}?${params.toString()}`
+  // Scriptable's JS runtime doesn't have URLSearchParams; build manually.
+  const enc = encodeURIComponent
+  const qs = `action=${enc(action)}&event=${enc(event.id)}&item=${enc(open.itemKey)}&day=${enc(state.todayKey)}`
+  return `scriptable:///run/${enc(SCRIPT_NAME)}?${qs}`
 }
 
 function buildWidget(state) {
