@@ -191,12 +191,16 @@ function actionUrl(action, state) {
 
 function buildWidget(state) {
   const w = new ListWidget()
-  w.url = APP_URL
+  // NOTE: do NOT set w.url here. iOS routes taps to whichever child stack has
+  // a .url; falling back to w.url would override the button stacks' URLs.
+  // Instead we put .url = APP_URL on every non-button stack so the PWA opens
+  // when anywhere outside the ✓/↷ buttons is tapped.
   w.backgroundColor = new Color('#0e1117')
   w.setPadding(12, 12, 12, 12)
 
-  // Header
+  // Header (tap → PWA)
   const head = w.addStack()
+  head.url = APP_URL
   const h = head.addText('HOMEHUB')
   h.font = Font.boldSystemFont(10)
   h.textColor = new Color('#7c83a3')
@@ -209,37 +213,43 @@ function buildWidget(state) {
   w.addSpacer(4)
 
   if (!state.next) {
+    const fill = w.addStack()
+    fill.url = APP_URL
+    fill.layoutVertically()
     if (state.eventCount === 0) {
-      const t = w.addText('Nothing scheduled today.')
+      const t = fill.addText('Nothing scheduled today.')
       t.font = Font.systemFont(13)
       t.textColor = new Color('#a8afc7')
     } else {
-      const t = w.addText('All done for today 🎉')
+      const t = fill.addText('All done for today 🎉')
       t.font = Font.boldSystemFont(15)
       t.textColor = new Color('#5fd0a0')
-      w.addSpacer(4)
-      const sub = w.addText(`${state.totalAll}/${state.totalAll} moved past`)
+      fill.addSpacer(4)
+      const sub = fill.addText(`${state.totalAll}/${state.totalAll} moved past`)
       sub.font = Font.systemFont(11)
       sub.textColor = new Color('#7c83a3')
     }
     return w
   }
 
-  // Event title
+  // Event title (tap → PWA)
   const { event, open, done, total, startTime } = state.next
-  const title = w.addText(event.title)
+  const titleStack = w.addStack()
+  titleStack.url = APP_URL
+  const title = titleStack.addText(event.title)
   title.font = Font.boldSystemFont(14)
   title.textColor = new Color('#e8ebf5')
   title.lineLimit = 1
   w.addSpacer(6)
 
-  // ── Interactive task row: [✓] [label] [↷] ─────────────────────────
+  // ── Interactive task row: [✓] [label → PWA] [↷] ───────────────────
   const row = w.addStack()
   row.layoutHorizontally()
   row.centerAlignContent()
   row.spacing = 8
+  // NOTE: row itself has no .url — tap zones come from its three children.
 
-  // Left: ✓ done button
+  // Left: ✓ done button (tap → fire upsert in Scriptable, no PWA)
   const doneBtn = row.addStack()
   doneBtn.layoutVertically()
   doneBtn.centerAlignContent()
@@ -252,7 +262,7 @@ function buildWidget(state) {
   dT.textColor = new Color('#5fd0a0')
   dT.centerAlignText()
 
-  // Center: task label (taps open PWA)
+  // Center: task label (tap → PWA)
   const center = row.addStack()
   center.layoutVertically()
   center.url = APP_URL
@@ -267,7 +277,7 @@ function buildWidget(state) {
     sub.textColor = new Color('#7c9cff')
   }
 
-  // Right: ↷ skip button
+  // Right: ↷ skip button (tap → fire upsert in Scriptable, no PWA)
   const skipBtn = row.addStack()
   skipBtn.layoutVertically()
   skipBtn.centerAlignContent()
@@ -280,9 +290,10 @@ function buildWidget(state) {
   sT.textColor = new Color('#a8afc7')
   sT.centerAlignText()
 
-  // Bottom: time + progress
+  // Bottom: time + progress (tap → PWA)
   w.addSpacer()
   const foot = w.addStack()
+  foot.url = APP_URL
   foot.layoutHorizontally()
   const time = foot.addText(event.all_day ? 'All day' : fmtTime(startTime))
   time.font = Font.systemFont(11)
