@@ -67,62 +67,96 @@ struct EmbeddedAppView: View {
     }
 }
 
-struct HomeHubWebView: UIViewRepresentable {
+// Use UIViewControllerRepresentable instead of UIViewRepresentable so we can
+// override the view controller's safe-area insets to zero — the only way to
+// get the WKWebView's render area to extend under the status bar and home
+// indicator without SwiftUI's safe-area machinery clipping it.
+struct HomeHubWebView: UIViewControllerRepresentable {
     @Binding var loaded: Bool
 
-    func makeUIView(context: Context) -> WKWebView {
-        let cfg = WKWebViewConfiguration()
-        cfg.websiteDataStore = .default()  // persist cookies / localStorage
-        cfg.allowsInlineMediaPlayback = true
-        // Tell the PWA we're in standalone (PWA-like) mode.
-        cfg.applicationNameForUserAgent = "Mobile/15E148 HomeHubApp/1.0"
-
-        let view = WKWebView(frame: .zero, configuration: cfg)
-        view.navigationDelegate = context.coordinator
-        view.scrollView.bounces = true
-        view.scrollView.contentInsetAdjustmentBehavior = .never
-        view.scrollView.contentInset = .zero
-        view.scrollView.scrollIndicatorInsets = .zero
-        view.scrollView.verticalScrollIndicatorInsets = .zero
-        view.backgroundColor = UIColor(red: 0.055, green: 0.066, blue: 0.090, alpha: 1)
-        view.scrollView.backgroundColor = UIColor(red: 0.055, green: 0.066, blue: 0.090, alpha: 1)
-        view.isOpaque = false
-        view.allowsBackForwardNavigationGestures = true
-        view.translatesAutoresizingMaskIntoConstraints = true
-        view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-        view.load(URLRequest(url: HomeHubConfig.appURL))
-        return view
+    func makeUIViewController(context: Context) -> WebHostController {
+        let vc = WebHostController()
+        vc.coordinator = context.coordinator
+        return vc
     }
-
-    func updateUIView(_ uiView: WKWebView, context: Context) {}
-
+    func updateUIViewController(_ vc: WebHostController, context: Context) {}
     func makeCoordinator() -> Coordinator { Coordinator(loaded: $loaded) }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
         @Binding var loaded: Bool
         init(loaded: Binding<Bool>) { _loaded = loaded }
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            // Force the viewport to actually fill — some PWAs apply margin via
-            // CSS env(safe-area-inset-*); we override to render edge-to-edge.
-            let css = """
-            html, body { margin: 0 !important; padding: 0 !important;
-              min-height: 100vh !important; min-height: 100dvh !important;
-              background: #0e1117 !important; }
-            """
+            // Inject aggressive CSS + viewport-fit=cover so the PWA actually
+            // renders all the way to the device edges (under the notch/home bar).
             let js = """
-            var s = document.createElement('style'); s.innerHTML = `\(css)`;
-            document.head.appendChild(s);
+            (function(){
+              var m = document.querySelector('meta[name=viewport]');
+              if (!m) { m = document.createElement('meta'); m.name = 'viewport'; document.head.appendChild(m); }
+              m.setAttribute('content',
+                'width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no');
+              var s = document.createElement('style');
+              s.innerHTML = `
+                html, body, #root {
+                  margin: 0 !important; padding: 0 !important;
+                  min-height: 100vh !important; min-height: 100dvh !important;
+                  height: 100% !important;
+                  background: #0e1117 !important;
+                }
+                body { overscroll-behavior: none; }
+              `;
+              document.head.appendChild(s);
+            })();
             """
             webView.evaluateJavaScript(js) { _, _ in }
-            // Tiny pause so the page paints before we cross-fade
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
                 self.loaded = true
             }
         }
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            // Don't get stuck on splash forever if offline
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { self.loaded = true }
         }
+    }
+}
+
+final class WebHostController: UIViewController {
+    var coordinator: HomeHubWebView.Coordinator?
+    private(set) var webView: WKWebView!
+
+    override var prefersHomeIndicatorAutoHidden: Bool { false }
+    override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
+
+    // ★ The key override: drop ALL safe-area insets so child views (the
+    //   WKWebView) fill the entire bounds, edge to edge.
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        additionalSafeAreaInsets = UIEdgeInsets(
+            top: -view.safeAreaInsets.top + additionalSafeAreaInsets.top,
+            left: 0, bottom: -view.safeAreaInsets.bottom + additionalSafeAreaInsets.bottom,
+            right: 0)
+    }
+
+    override func loadView() {
+        let cfg = WKWebViewConfiguration()
+        cfg.websiteDataStore = .default()
+        cfg.allowsInlineMediaPlayback = true
+        cfg.applicationNameForUserAgent = "Mobile/15E148 HomeHubApp/1.0"
+
+        let wv = WKWebView(frame: .zero, configuration: cfg)
+        wv.navigationDelegate = coordinator
+        wv.scrollView.bounces = true
+        wv.scrollView.contentInsetAdjustmentBehavior = .never
+        wv.scrollView.contentInset = .zero
+        wv.scrollView.scrollIndicatorInsets = .zero
+        wv.scrollView.verticalScrollIndicatorInsets = .zero
+        wv.backgroundColor = UIColor(red: 0.055, green: 0.066, blue: 0.090, alpha: 1)
+        wv.scrollView.backgroundColor = UIColor(red: 0.055, green: 0.066, blue: 0.090, alpha: 1)
+        wv.isOpaque = false
+        wv.allowsBackForwardNavigationGestures = true
+        wv.translatesAutoresizingMaskIntoConstraints = true
+        wv.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        wv.load(URLRequest(url: HomeHubConfig.appURL))
+        self.webView = wv
+        self.view = wv
     }
 }
 
