@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HomeHub Widget — Mac Test</title>
+<style>
+  :root {
+    --bg: #1a1d28; --widget: #0e1117;
+    --text: #e8ebf5; --muted: #7c83a3; --accent: #7c9cff;
+    --good: #5fd0a0; --good-bg: #1b3a2a;
+    --skip-bg: #2a2a35;
+  }
+  html, body { margin: 0; padding: 0; background: var(--bg);
+    color: var(--text); font-family: -apple-system, BlinkMacSystemFont, system-ui; }
+  body { display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh; padding: 32px 20px; gap: 22px; }
+  h1 { font-size: 16px; font-weight: 800; letter-spacing: .4px;
+    color: var(--muted); margin: 0; text-transform: uppercase; }
+  .frame { width: 360px; height: 170px; }
+  .widget { width: 100%; height: 100%; background: var(--widget); border-radius: 22px;
+    padding: 14px 14px 12px; box-sizing: border-box;
+    display: grid; grid-template-rows: auto auto 1fr auto; gap: 8px; }
+  .hdr { display: flex; justify-content: space-between; align-items: center;
+    font-size: 10px; font-weight: 800; color: var(--muted); letter-spacing: .5px; }
+  .title { font-size: 14px; font-weight: 800; color: var(--text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row { display: grid; grid-template-columns: 48px 1fr 48px; gap: 10px; align-items: center; }
+  .btn { width: 48px; height: 48px; border-radius: 12px; border: 0;
+    font-size: 22px; font-weight: 800; cursor: pointer; transition: transform .08s, filter .12s; }
+  .btn:active { transform: scale(.94); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.done { background: var(--good-bg); color: var(--good); }
+  .btn.skip { background: var(--skip-bg); color: var(--muted); }
+  .label-stack { min-width: 0; }
+  .label { font-size: 13px; font-weight: 700; color: var(--text);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sub { font-size: 11px; color: var(--accent); margin-top: 2px; }
+  .ftr { display: flex; justify-content: space-between; align-items: center;
+    font-size: 11px; color: var(--muted); }
+  .ftr .prog { color: var(--good); font-weight: 700; }
+  .done-msg { display: flex; flex-direction: column; justify-content: center;
+    height: 100%; gap: 4px; }
+  .done-msg b { color: var(--good); font-size: 15px; }
+  .done-msg small { color: var(--muted); font-size: 11px; }
+
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+    justify-content: center; }
+  .toolbar button {
+    background: #2a2d3e; border: 1px solid #3a3d4e; color: var(--text);
+    padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; }
+  .toolbar button:hover { background: #353849; }
+  .toolbar select {
+    background: #2a2d3e; border: 1px solid #3a3d4e; color: var(--text);
+    padding: 8px 10px; border-radius: 8px; font-size: 12px; }
+
+  .log {
+    width: 100%; max-width: 720px;
+    background: #131620; border: 1px solid #2a2d3e; border-radius: 12px;
+    padding: 14px 16px; font-family: ui-monospace, monospace;
+    font-size: 12px; color: #c0c4d6; max-height: 320px; overflow-y: auto;
+  }
+  .log .ok { color: var(--good); }
+  .log .err { color: #e5575d; }
+  .log .dim { color: var(--muted); }
+  .log .row-line { padding: 2px 0; }
+  .schedule { width: 100%; max-width: 720px; font-size: 12px; }
+  .schedule table { width: 100%; border-collapse: collapse; }
+  .schedule td { padding: 4px 8px; border-bottom: 1px solid #2a2d3e; }
+  .schedule .open { color: var(--accent); }
+  .schedule .done { color: var(--good); }
+</style>
+</head>
+<body>
+  <h1>HomeHub widget — interactive Mac test</h1>
+
+  <div class="toolbar">
+    <label style="font-size:12px;color:var(--muted)">User:
+      <select id="user">
+        <option value="ethan">ethan</option>
+        <option value="justin">justin</option>
+      </select>
+    </label>
+    <button id="refresh">↻ Refresh</button>
+    <span id="status" style="font-size:11px;color:var(--muted)"></span>
+  </div>
+
+  <div class="frame" id="frame"></div>
+
+  <div class="schedule" id="schedule"></div>
+
+  <div class="log" id="log"></div>
+
+<script>
+const SUPABASE_URL = 'https://kiuxegztynurpthxsnvr.supabase.co'
+const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpdXhlZ3p0eW51cnB0aHhzbnZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxOTgxODksImV4cCI6MjA5NDc3NDE4OX0.XLYO2XCmXtfQvzD1tJGgdYZrqmMSBzsQBnXXZfz31ss'
+const H = { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` }
+
+const logEl = document.getElementById('log')
+function log(html, cls = '') {
+  const div = document.createElement('div')
+  div.className = 'row-line ' + cls
+  div.innerHTML = `<span class="dim">${new Date().toLocaleTimeString()}</span>  ${html}`
+  logEl.prepend(div)
+}
+
+async function sbGet(path, params = '') {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}${params ? '?' + params : ''}`, { headers: H })
+  if (!r.ok) throw new Error(`${path}: ${r.status} ${await r.text()}`)
+  return r.json()
+}
+async function sbUpsert(row) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/progress?on_conflict=event_id,log_date,item_key,user_id`, {
+    method: 'POST',
+    headers: { ...H, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify(row)
+  })
+  if (!r.ok) throw new Error(`upsert: ${r.status} ${await r.text()}`)
+}
+
+const isExercise = (l) => /^\d+[.)]\s/.test(l)
+function setCount(line) {
+  const clamp = (n) => Math.min(Math.max(n, 1), 8)
+  let m
+  if ((m = line.match(/(\d{1,2})\s*[–-]\s*(\d{1,2})\s*sets?\b/i))) return clamp(parseInt(m[2], 10))
+  if ((m = line.match(/(\d{1,2})\s*sets?\s*[×xX]/i))) return clamp(parseInt(m[1], 10))
+  if ((m = line.match(/[—-]\s*(\d{1,2})\s*[×xX]\s*\d/))) return clamp(parseInt(m[1], 10))
+  if ((m = line.match(/\b(\d{1,2})\s*[×xX]\s*\d/))) return clamp(parseInt(m[1], 10))
+  if ((m = line.match(/(\d{1,2})\s*sets?\b/i))) return clamp(parseInt(m[1], 10))
+  return 3
+}
+function parseEvent(ev) {
+  const lines = (ev.notes || '').split('\n').map((s) => s.trim()).filter(Boolean)
+  const titleGym = /gym|🏋/i.test(ev.title || '')
+  if (lines.some(isExercise) || (titleGym && lines.length)) {
+    const groups = []
+    lines.forEach((l) => { if (isExercise(l)) groups.push({ key: `g${groups.length}`, label: l, sets: setCount(l) }) })
+    return { kind: 'gym', groups }
+  }
+  if (lines.length) {
+    const parts = lines.join(' / ').split(/(?<=[.;])\s+|\s*\/\s*|\s•\s/)
+      .map((s) => s.replace(/[.;]\s*$/, '').trim()).filter((s) => s.length > 1)
+    return { kind: 'meal', groups: parts.map((p, i) => ({ key: `m${i}`, label: p, sets: 0 })) }
+  }
+  return { kind: 'simple', groups: [{ key: '__done__', label: ev.title, sets: 0 }] }
+}
+const stripNum = (l) => l.replace(/^\d+\.\s*/, '').split('—')[0].trim()
+const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+const occursOn = (ev, d) => {
+  const s = new Date(ev.starts_at)
+  if (ev.recurrence === 'daily') return s <= d
+  if (ev.recurrence === 'weekly') return s <= d && s.getDay() === d.getDay()
+  return ymd(s) === ymd(d)
+}
+const fmtTime = (d) => {
+  let h = d.getHours(), m = d.getMinutes()
+  const ap = h >= 12 ? 'pm' : 'am'
+  h = h % 12; if (h === 0) h = 12
+  return m === 0 ? `${h}${ap}` : `${h}:${String(m).padStart(2, '0')}${ap}`
+}
+
+async function loadState(user) {
+  const today = new Date()
+  const dayKey = ymd(today)
+  const [events, progress, overrides] = await Promise.all([
+    sbGet('events', 'select=*'),
+    sbGet('progress', `select=*&log_date=eq.${dayKey}&user_id=eq.${user}`),
+    sbGet('gym_override', `select=*&log_date=eq.${dayKey}&user_id=eq.${user}`)
+  ])
+  const ovId = overrides[0]?.event_id
+  const ovEv = ovId ? events.find((e) => e.id === ovId) : null
+  let todays = events.filter((e) => occursOn(e, today))
+  if (ovEv) todays = todays.filter((e) => e.type !== 'gym').concat([ovEv])
+  todays.sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at))
+  const byEvent = {}
+  for (const r of progress) ((byEvent[r.event_id] ||= {}))[r.item_key] = r
+  const moved = (r) => !!(r && (r.done || r.skipped))
+  function completion(parsed, p) {
+    let done = 0, total = 0
+    for (const g of parsed.groups) {
+      if (g.sets > 0) { total += g.sets; for (let s = 0; s < g.sets; s++) if (moved(p[`${g.key}#${s}`])) done++ }
+      else { total += 1; if (moved(p[g.key])) done++ }
+    }
+    return { done, total }
+  }
+  function firstOpen(parsed, p) {
+    for (const g of parsed.groups) {
+      if (g.sets > 0) {
+        for (let s = 0; s < g.sets; s++) {
+          const k = `${g.key}#${s}`
+          if (!moved(p[k])) return { label: stripNum(g.label), itemKey: k, setNum: s + 1, totalSets: g.sets }
+        }
+      } else if (!moved(p[g.key])) return { label: g.label, itemKey: g.key, setNum: 0, totalSets: 0 }
+    }
+    return null
+  }
+  let next = null, totalDone = 0, totalAll = 0
+  const summaries = []
+  for (const e of todays) {
+    const parsed = parseEvent(e)
+    const p = byEvent[e.id] || {}
+    const c = completion(parsed, p)
+    totalDone += c.done; totalAll += c.total
+    summaries.push({ event: e, ...c, first: firstOpen(parsed, p) })
+    if (!next) {
+      const open = firstOpen(parsed, p)
+      if (open) next = { event: e, open, ...c, startTime: new Date(e.starts_at) }
+    }
+  }
+  return { next, dayKey, totalDone, totalAll, todays, summaries }
+}
+
+function renderWidget(state) {
+  const f = document.getElementById('frame')
+  if (!state.next) {
+    f.innerHTML = `<div class="widget">
+      <div class="hdr"><span>HOMEHUB</span><span>${state.totalAll ? state.totalDone + '/' + state.totalAll : ''}</span></div>
+      <div class="done-msg">
+        <b>${state.todays.length === 0 ? 'Nothing scheduled today.' : 'All done for today 🎉'}</b>
+        ${state.todays.length === 0 ? '' : `<small>${state.totalAll}/${state.totalAll} moved past</small>`}
+      </div>
+    </div>`
+    return
+  }
+  const { event, open, done, total, startTime } = state.next
+  f.innerHTML = `<div class="widget">
+    <div class="hdr"><span>HOMEHUB</span><span>${state.totalDone}/${state.totalAll}</span></div>
+    <div class="title">${escape(event.title)}</div>
+    <div class="row">
+      <button class="btn done" id="btnDone" title="Mark done">✓</button>
+      <div class="label-stack">
+        <div class="label">${escape(open.label)}</div>
+        ${open.totalSets ? `<div class="sub">set ${open.setNum}/${open.totalSets}</div>` : ''}
+      </div>
+      <button class="btn skip" id="btnSkip" title="Skip">↷</button>
+    </div>
+    <div class="ftr"><span>${event.all_day ? 'All day' : fmtTime(startTime)}</span><span class="prog">${done}/${total}</span></div>
+  </div>`
+  document.getElementById('btnDone').onclick = () => act('done', state.next, state.dayKey)
+  document.getElementById('btnSkip').onclick = () => act('skip', state.next, state.dayKey)
+}
+function escape(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])) }
+
+function renderSchedule(state) {
+  const s = document.getElementById('schedule')
+  s.innerHTML = `<table>${state.summaries.map((sm) => `
+    <tr>
+      <td style="width:70px;color:var(--muted)">${sm.event.all_day ? 'all-day' : fmtTime(new Date(sm.event.starts_at))}</td>
+      <td>${escape(sm.event.title)}</td>
+      <td style="text-align:right;width:50px" class="${sm.first ? 'open' : 'done'}">${sm.done}/${sm.total}</td>
+      <td style="color:var(--muted)">${sm.first ? '→ ' + escape(sm.first.label).slice(0, 36) : '✓'}</td>
+    </tr>`).join('')}</table>`
+}
+
+let busy = false
+async function act(action, next, dayKey) {
+  if (busy) return
+  busy = true
+  const u = document.getElementById('user').value
+  const row = {
+    event_id: next.event.id, log_date: dayKey, item_key: next.open.itemKey,
+    user_id: u, updated_at: new Date().toISOString(),
+    done: action === 'done', skipped: action === 'skip'
+  }
+  log(`<b>${action === 'done' ? '✓ DONE' : '↷ SKIP'}</b> on <code>${next.open.itemKey}</code> of "${escape(next.event.title)}" — <span class="dim">upserting…</span>`)
+  try {
+    await sbUpsert(row)
+    log(`  <span class="ok">✓ upsert succeeded</span>`, 'ok')
+    await refresh()
+    const after = await loadState(u)
+    if (after.next) log(`  next: ${escape(after.next.event.title)} → ${escape(after.next.open.label)} <span class="dim">[${after.next.open.itemKey}]</span>`)
+    else log(`  🎉 all moved past for today`)
+  } catch (e) {
+    log(`  <span class="err">✗ ${escape(e.message)}</span>`, 'err')
+  } finally { busy = false }
+}
+
+async function refresh() {
+  const u = document.getElementById('user').value
+  document.getElementById('status').textContent = 'loading…'
+  try {
+    const state = await loadState(u)
+    renderWidget(state)
+    renderSchedule(state)
+    document.getElementById('status').textContent = state.next
+      ? `widget pointing at: ${state.next.event.title} → ${state.next.open.label}`
+      : 'all moved past for today'
+  } catch (e) { document.getElementById('status').textContent = 'error: ' + e.message; log(`<span class="err">${escape(e.message)}</span>`, 'err') }
+}
+
+document.getElementById('refresh').onclick = refresh
+document.getElementById('user').onchange = refresh
+log('ready. Pick a user and click the ✓ or ↷ on the widget — same Supabase your phone widget hits.', 'dim')
+refresh()
+</script>
+</body>
+</html>
