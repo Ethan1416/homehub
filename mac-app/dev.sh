@@ -47,7 +47,8 @@ if [[ $DO_MAC -eq 1 ]]; then
 fi
 
 if [[ $DO_IOS -eq 1 ]]; then
-  if xcrun devicectl list devices 2>&1 | grep -q "$IPHONE_ID.*available"; then
+  # NB: 'unavailable' also contains 'available' — match the exact column.
+  if xcrun devicectl list devices 2>&1 | awk -v id="$IPHONE_ID" '$0 ~ id && /\bavailable\b/ {found=1} END{exit !found}'; then
     echo "▶ building for iPhone"
     xcodebuild -project HomeHub.xcodeproj -scheme HomeHub \
       -configuration Release \

@@ -26,6 +26,9 @@ struct ProgressRow: Decodable {
     let user_id: String
     let done: Bool?
     let skipped: Bool?
+    let weight: String?
+    let reps: String?
+    let effort: String?
 }
 
 struct GymOverride: Decodable {
@@ -138,11 +141,22 @@ struct OpenItem {
     let allDay: Bool
     let startTime: Date
     let label: String        // stripped (no "1. ")
-    let itemKey: String      // g0#0 / m1 / __done__
+    let itemKey: String      // g0#0 / m1 / __done×__
     let setNum: Int          // 0 if not a gym set
     let totalSets: Int       // 0 if not a gym set
     let eventDone: Int
     let eventTotal: Int
+    // Anchor: last logged set for this exercise on a previous day.
+    // Nil for non-gym or first-time exercises.
+    let lastSetWeight: String?
+    let lastSetReps: String?
+    let lastSetEffort: String?
+}
+
+struct UpcomingEvent {
+    let title: String
+    let startTime: Date
+    let allDay: Bool
 }
 
 struct HHSnapshot {
@@ -151,6 +165,8 @@ struct HHSnapshot {
     let totalDone: Int
     let totalAll: Int
     let eventCount: Int
+    let streakDays: Int            // consecutive complete days ending today
+    let nextUp: UpcomingEvent?     // the event AFTER state.next on today's list
 }
 
 enum HomeHubService {
@@ -201,10 +217,15 @@ enum HomeHubService {
     static func loadSnapshot() async throws -> HHSnapshot {
         let today = Date()
         let dayKey = HomeHubParser.ymd(today)
+        // Look back 30 days for streak + last-set computation.
+        let sinceDate = Calendar.current.date(byAdding: .day, value: -30, to: today)!
+        let sinceKey = HomeHubParser.ymd(sinceDate)
         async let events: [HHEvent] = get("events", "select=*")
-        async let progress: [ProgressRow] = get("progress", "select=*&log_date=eq.\(dayKey)&user_id=eq.\(HomeHubConfig.user)")
+        async let progress30: [ProgressRow] = get("progress", "select=*&log_date=gte.\(sinceKey)&user_id=eq.\(HomeHubConfig.user)")
         async let overrides: [GymOverride] = get("gym_override", "select=*&log_date=eq.\(dayKey)&user_id=eq.\(HomeHubConfig.user)")
-        let (allEvents, allProgress, allOverrides) = try await (events, progress, overrides)
+        let (allEvents, allRecentProgress, allOverrides) = try await (events, progress30, overrides)
+        // Today-only progress is a subset of the 30-day fetch.
+        let allProgress = allRecentProgress.filter { $0.log_date == dayKey }
 
         let overrideEv: HHEvent? = allOverrides.first.flatMap { ov in
             allEvents.first { $0.id == ov.event_id }
@@ -258,8 +279,9 @@ enum HomeHubService {
         }
 
         var next: OpenItem? = nil
+        var nextEventIdx: Int? = nil
         var totalDone = 0, totalAll = 0
-        for e in todays {
+        for (idx, e) in todays.enumerated() {
             let parsed = HomeHubParser.parse(e)
             let p = byEvent[e.id] ?? [:]
             let (d, t) = completion(parsed, p)
@@ -272,17 +294,103 @@ enum HomeHubService {
                 case .meal: kindStr = "meal"
                 case .simple: kindStr = "simple"
                 }
+                // Last-set anchor for gym exercises: look back through past 30
+                // days of progress on this exercise's group prefix (eg "g0#")
+                // and return the most recent row with a weight.
+                var lastWeight: String? = nil
+                var lastReps: String? = nil
+                var lastEffort: String? = nil
+                if kindStr == "gym" {
+                    let prefix = open.key.split(separator: "#").first.map(String.init) ?? ""
+                    let candidates = allRecentProgress
+                        .filter { $0.event_id == e.id
+                            && $0.log_date != dayKey
+                            && $0.item_key.hasPrefix("\(prefix)#")
+                            && ($0.done ?? false) }
+                        .sorted { $0.log_date > $1.log_date }
+                    if let last = candidates.first(where: { ($0.weight ?? "").isEmpty == false }) {
+                        lastWeight = last.weight
+                        lastReps = last.reps
+                        lastEffort = last.effort
+                    }
+                }
                 next = OpenItem(eventId: e.id, eventTitle: e.title,
                                 eventKind: kindStr,
                                 allDay: e.all_day ?? false,
                                 startTime: start,
                                 label: open.label, itemKey: open.key,
                                 setNum: open.set, totalSets: open.totalSets,
-                                eventDone: d, eventTotal: t)
+                                eventDone: d, eventTotal: t,
+                                lastSetWeight: lastWeight,
+                                lastSetReps: lastReps,
+                                lastSetEffort: lastEffort)
+                nextEventIdx = idx
             }
         }
+
+        // What's the NEXT event on today's list (anticipation lever).
+        var nextUp: UpcomingEvent? = nil
+        if let idx = nextEventIdx, idx + 1 < todays.count {
+            let n = todays[idx + 1]
+            let start = iso.date(from: n.starts_at) ?? isoNF.date(from: n.starts_at) ?? Date()
+            nextUp = UpcomingEvent(title: n.title, startTime: start,
+                                   allDay: n.all_day ?? false)
+        }
+
+        // Streak: consecutive days ending today (with today's incomplete grace).
+        let streakDays = computeStreak(events: allEvents, progress: allRecentProgress,
+                                       today: today)
+
         return HHSnapshot(dayKey: dayKey, next: next,
                           totalDone: totalDone, totalAll: totalAll,
-                          eventCount: todays.count)
+                          eventCount: todays.count,
+                          streakDays: streakDays,
+                          nextUp: nextUp)
+    }
+
+    // Walk backward from today, count consecutive days on which every scheduled
+    // event was fully moved past (done OR skipped). Today's incompleteness is
+    // a free pass — yesterday's state determines the streak.
+    private static func computeStreak(events: [HHEvent],
+                                      progress: [ProgressRow],
+                                      today: Date) -> Int {
+        let cal = Calendar.current
+        var byDate: [String: [String: [String: ProgressRow]]] = [:]
+        for r in progress {
+            byDate[r.log_date, default: [:]][r.event_id, default: [:]][r.item_key] = r
+        }
+        func dayComplete(_ d: Date) -> Bool {
+            let todays = events.filter { HomeHubParser.occursOn($0, d) }
+            if todays.isEmpty { return false }
+            let pd = byDate[HomeHubParser.ymd(d)] ?? [:]
+            for e in todays {
+                let parsed = HomeHubParser.parse(e)
+                let p = pd[e.id] ?? [:]
+                for g in parsed.groups {
+                    if g.sets > 0 {
+                        for s in 0..<g.sets {
+                            let r = p["\(g.key)#\(s)"]
+                            if !((r?.done ?? false) || (r?.skipped ?? false)) { return false }
+                        }
+                    } else {
+                        let r = p[g.key]
+                        if !((r?.done ?? false) || (r?.skipped ?? false)) { return false }
+                    }
+                }
+            }
+            return true
+        }
+        // Grace: if today is not complete, start counting from yesterday.
+        var anchor = today
+        if !dayComplete(anchor) {
+            anchor = cal.date(byAdding: .day, value: -1, to: anchor)!
+        }
+        var count = 0
+        var cur = anchor
+        while dayComplete(cur) {
+            count += 1
+            cur = cal.date(byAdding: .day, value: -1, to: cur)!
+        }
+        return count
     }
 }

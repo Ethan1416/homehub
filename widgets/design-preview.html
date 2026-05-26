@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HomeHub Widget — Variant B+ Iteration</title>
+<style>
+  :root {
+    --bg: #0a0d14;
+    --canvas: #0b0e16;
+    --text: #ffffff;
+    --muted: #8a90a8;
+    --dim: #4a5066;
+    --heat: #fc4c02;
+    --heat-soft: #ff7a3a;
+    --burn: #f5a02d;
+    --bar-bg: rgba(255,255,255,.07);
+    --grid-line: rgba(255,255,255,.04);
+  }
+  html, body { margin:0; padding:0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, system-ui; min-height: 100vh; }
+  body { padding: 50px 24px 80px; display: flex; flex-direction: column;
+    align-items: center; gap: 32px; }
+  h1 { font-size: 12px; font-weight: 800; letter-spacing: 1.4px;
+    color: var(--muted); margin: 0; text-transform: uppercase; }
+  .label { font-size: 10px; color: var(--dim); letter-spacing: 1.2px;
+    text-transform: uppercase; font-weight: 800; margin-bottom: -22px; }
+  .note { font-size: 11px; color: var(--dim); max-width: 360px; line-height: 1.5;
+    margin-top: -16px; text-align: left; }
+  .note b { color: var(--muted); }
+
+  /* Medium widget: 360x170 pt (iOS) */
+  .frame { width: 360px; height: 170px; border-radius: 22px;
+    overflow: hidden; box-shadow: 0 16px 50px rgba(0,0,0,.7); }
+  .widget { width: 100%; height: 100%; position: relative;
+    box-sizing: border-box; overflow: hidden;
+    background:
+      /* Heat glow bottom-right */
+      radial-gradient(120% 80% at 100% 110%, rgba(252,76,2,.32), transparent 55%),
+      /* Top-left cool fade */
+      radial-gradient(80% 60% at 0% 0%, rgba(124,131,168,.06), transparent 60%),
+      /* Base */
+      linear-gradient(180deg, #10131d 0%, #07090f 100%);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, system-ui;
+  }
+
+  /* Topographical pattern overlay — very subtle */
+  .widget::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      repeating-linear-gradient(90deg, transparent 0 22px, var(--grid-line) 22px 23px),
+      repeating-linear-gradient(0deg, transparent 0 22px, var(--grid-line) 22px 23px);
+    opacity: .55;
+    mask-image: radial-gradient(60% 50% at 50% 40%, black, transparent 100%);
+  }
+  /* Heat glow accent in bottom-right (subtle blur) */
+  .widget::after {
+    content: ''; position: absolute; right: -40px; bottom: -40px;
+    width: 220px; height: 220px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(252,76,2,.35) 0%, transparent 60%);
+    filter: blur(20px); pointer-events: none;
+  }
+
+  /* Inner content area — padding only at top and sides; bottom flush for bar.
+     Reserve ~24px gap above the progress bar so CTA / next-up sit visibly higher. */
+  .inner { position: relative; z-index: 1;
+    padding: 14px 16px 0;
+    height: calc(100% - 24px);  /* 5px bar + 19px breathing room */
+    display: grid; grid-template-rows: auto 1fr auto; gap: 6px; }
+
+  /* --- TOP STRIP --- */
+  .top { display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; }
+  .streak-pill { display: inline-flex; align-items: center; gap: 5px;
+    background: rgba(252,76,2,.18); border: 1px solid rgba(252,76,2,.45);
+    color: var(--heat-soft); font-weight: 900; font-size: 12px;
+    padding: 2px 9px; border-radius: 999px; letter-spacing: .3px;
+    box-shadow: 0 0 10px rgba(252,76,2,.22) inset; }
+  .streak-pill .flame { font-size: 12px; }
+  .ev { color: var(--muted); font-weight: 700; font-size: 10.5px;
+    letter-spacing: .9px; text-transform: uppercase;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1; text-align: right; }
+  .ev .dot { color: var(--dim); margin: 0 6px; }
+  .ev .time { color: var(--heat-soft); font-weight: 900; }
+
+  /* --- FOCAL: exercise name + anchor --- */
+  .focal { display: flex; flex-direction: column; justify-content: center;
+    gap: 4px; min-height: 0; }
+  .exercise { font-size: 28px; font-weight: 900; line-height: 1;
+    letter-spacing: -.5px; color: var(--text);
+    text-shadow: 0 0 24px rgba(252,76,2,.15);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .anchor-row { display: flex; align-items: center; gap: 10px; }
+  .set-badge { font-size: 11px; font-weight: 800; color: var(--muted);
+    letter-spacing: .4px; }
+  .vs { color: var(--dim); font-size: 11px; font-weight: 700; letter-spacing: 1px; }
+  .last { font-size: 12px; font-weight: 900; color: var(--heat-soft);
+    letter-spacing: .2px; }
+  .last .x { color: var(--burn); }
+
+  /* --- BOTTOM: CTA pill --- */
+  .bottom { display: flex; justify-content: space-between; align-items: flex-end;
+    padding-bottom: 6px; /* combined with .inner reserve = ~25px from bar */ }
+  .next-up { font-size: 10px; color: var(--muted); font-weight: 600;
+    letter-spacing: .3px; display: flex; flex-direction: column; gap: 1px; }
+  .next-up small { color: var(--dim); font-size: 9px; letter-spacing: 1.1px;
+    text-transform: uppercase; font-weight: 800; }
+  .cta { display: inline-flex; align-items: center; gap: 6px;
+    background: linear-gradient(135deg, var(--heat) 0%, #d63d00 100%);
+    color: white; font-weight: 900; font-size: 12.5px;
+    letter-spacing: .8px; text-transform: uppercase;
+    padding: 8px 14px; border-radius: 999px;
+    box-shadow: 0 6px 18px rgba(252,76,2,.45),
+                inset 0 1px 0 rgba(255,255,255,.22); }
+  .cta .arr { font-size: 13px; }
+
+  /* --- PROGRESS BAR (flush bottom) --- */
+  .progress { position: absolute; left: 0; right: 0; bottom: 0;
+    height: 5px; background: var(--bar-bg); }
+  .progress .fill { height: 100%;
+    background: linear-gradient(90deg, var(--burn) 0%, var(--heat) 100%);
+    box-shadow: 0 0 12px rgba(252,76,2,.55); }
+  .progress .lbl { position: absolute; right: 8px; bottom: 8px;
+    font-size: 9.5px; color: var(--heat-soft); font-weight: 900;
+    letter-spacing: 1px; }
+</style>
+</head>
+<body>
+
+<h1>HomeHub · Variant B+ · Heat redux</h1>
+
+<!-- The hero variant -->
+<div class="label">B+ · primary</div>
+<div class="frame">
+  <div class="widget">
+    <div class="inner">
+      <div class="top">
+        <span class="streak-pill"><span class="flame">🔥</span>5</span>
+        <span class="ev">Legs Quad Focus + Core<span class="dot">·</span><span class="time">12pm</span></span>
+      </div>
+      <div class="focal">
+        <div class="exercise">Cable fly</div>
+        <div class="anchor-row">
+          <span class="set-badge">SET 2/4</span>
+          <span class="vs">VS</span>
+          <span class="last">last 80<span class="x">×</span>9 burn</span>
+        </div>
+      </div>
+      <div class="bottom">
+        <span class="next-up"><small>NEXT</small>post-workout 2pm</span>
+        <span class="cta">Tap to log<span class="arr">→</span></span>
+      </div>
+    </div>
+    <div class="progress">
+      <div class="fill" style="width:12%"></div>
+    </div>
+  </div>
+</div>
+
+<div class="note"><b>Placement logic:</b><br>
+  • <b>Top-left streak pill</b> — first eye landing, glowing border = loss-aversion (don't break it).<br>
+  • <b>Top-right time/event</b> — orientation context, secondary.<br>
+  • <b>Big "CABLE FLY"</b> — focal point, the eye's natural center stop.<br>
+  • <b>SET 2/4 vs last 80×9</b> — head-to-head anchor: you read it as "this set must beat 80×9."<br>
+  • <b>Bottom-right CTA pill</b> — Z-pattern endpoint, designed to terminate the gaze on the action.<br>
+  • <b>Progress bar flush at bottom</b> — always in peripheral vision, never lost; orange-burn gradient pulls eye downward making you feel forward momentum.<br>
+  • <b>Background</b> — radial heat glow from bottom-right corner + subtle grid pattern + dark gradient base. No flat color — adds depth and "premium" feel.
+</div>
+
+<!-- Variant with no next-up (cleaner) -->
+<div class="label">B+ · clean (no next-up)</div>
+<div class="frame">
+  <div class="widget">
+    <div class="inner">
+      <div class="top">
+        <span class="streak-pill"><span class="flame">🔥</span>5</span>
+        <span class="ev">Legs Quad Focus + Core<span class="dot">·</span><span class="time">12pm</span></span>
+      </div>
+      <div class="focal">
+        <div class="exercise">Cable fly</div>
+        <div class="anchor-row">
+          <span class="set-badge">SET 2/4</span>
+          <span class="vs">VS</span>
+          <span class="last">last 80<span class="x">×</span>9 burn</span>
+        </div>
+      </div>
+      <div class="bottom" style="justify-content:flex-end">
+        <span class="cta">Tap to log<span class="arr">→</span></span>
+      </div>
+    </div>
+    <div class="progress">
+      <div class="fill" style="width:12%"></div>
+    </div>
+  </div>
+</div>
+
+<div class="note">Same energy with the next-up removed if it feels noisy. CTA sits alone in the action zone with more breathing room.</div>
+
+<!-- Variant with bigger exercise -->
+<div class="label">B+ · giant exercise</div>
+<div class="frame">
+  <div class="widget">
+    <div class="inner">
+      <div class="top">
+        <span class="streak-pill"><span class="flame">🔥</span>5</span>
+        <span class="ev">Legs Quad Focus + Core<span class="dot">·</span><span class="time">12pm</span></span>
+      </div>
+      <div class="focal">
+        <div class="exercise" style="font-size:34px">Cable fly</div>
+        <div class="anchor-row">
+          <span class="last" style="font-size:14px">last 80<span class="x">×</span>9 burn</span>
+          <span class="vs">·</span>
+          <span class="set-badge">SET 2/4</span>
+        </div>
+      </div>
+      <div class="bottom">
+        <span class="next-up"><small>NEXT</small>post-workout 2pm</span>
+        <span class="cta">Tap to log<span class="arr">→</span></span>
+      </div>
+    </div>
+    <div class="progress">
+      <div class="fill" style="width:12%"></div>
+    </div>
+  </div>
+</div>
+
+<div class="note">Exercise name even bigger — dominates the whole middle band. Anchor moved to be the primary number, set badge becomes secondary context.</div>
+
+</body>
+</html>

@@ -1,8 +1,15 @@
 // HomeHubApp.swift
-// Minimal host app. Its only real job is to ship the widget extension
-// inside its .app bundle so macOS / iOS can register it.
+// The native HomeHub app exists primarily to host the widget extension. On
+// launch (e.g. if the user taps the widget without an explicit .widgetURL
+// landing first), it immediately redirects to the real HomeHub PWA in Safari
+// so the user always ends up in the right place.
 import SwiftUI
 import WidgetKit
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 @main
 struct HomeHubApp: App {
@@ -17,76 +24,41 @@ struct HomeHubApp: App {
 }
 
 struct ContentView: View {
-    @State private var snapshot: HHSnapshot? = nil
-    @State private var loading = false
-    @State private var error: String? = nil
+    @State private var didRedirect = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(spacing: 16) {
             Text("HomeHub")
-                .font(.system(size: 24, weight: .heavy))
-            Text("This app hosts the HomeHub home-screen / desktop widget. Add it via your widget gallery.")
-                .font(.system(size: 13))
+                .font(.system(size: 28, weight: .heavy))
+            Text("Opening HomeHub…")
                 .foregroundStyle(.secondary)
-
-            Divider()
-
-            if let s = snapshot {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Today").font(.headline)
-                        Spacer()
-                        Text("\(s.totalDone)/\(s.totalAll)")
-                            .foregroundStyle(.secondary)
-                    }
-                    if let n = s.next {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(n.eventTitle).font(.system(size: 15, weight: .semibold))
-                            Text("Next: \(n.label)\(n.totalSets > 0 ? " — set \(n.setNum)/\(n.totalSets)" : "")")
-                                .font(.system(size: 13))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(10)
-                        .background(.quaternary, in: RoundedRectangle(cornerRadius: 10))
-                    } else {
-                        Text(s.eventCount == 0 ? "Nothing scheduled today." : "All done today 🎉")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            } else if let err = error {
-                Text(err).foregroundStyle(.red).font(.system(size: 12, design: .monospaced))
-            } else if loading {
-                ProgressView()
+            Button {
+                openPWA()
+            } label: {
+                Label("Open HomeHub", systemImage: "arrow.up.forward.app")
+                    .font(.system(size: 14, weight: .semibold))
             }
-
-            Spacer()
-
-            HStack {
-                Button {
-                    Task { await reload() }
-                } label: {
-                    Label("Refresh", systemImage: "arrow.clockwise")
-                }
-                Spacer()
-                Button {
-                    WidgetCenter.shared.reloadAllTimelines()
-                } label: {
-                    Label("Reload widget timelines", systemImage: "rectangle.on.rectangle.angled")
-                }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            guard !didRedirect else { return }
+            didRedirect = true
+            // Tiny delay so iOS gets to finish animating the app launch
+            // before we hand off to Safari.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                openPWA()
             }
         }
-        .padding(20)
-        .task { await reload() }
     }
 
-    @MainActor
-    private func reload() async {
-        loading = true; error = nil
-        do {
-            snapshot = try await HomeHubService.loadSnapshot()
-        } catch {
-            self.error = "\(error)"
-        }
-        loading = false
+    private func openPWA() {
+        let url = HomeHubConfig.appURL
+        #if canImport(UIKit)
+        UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        #elseif canImport(AppKit)
+        NSWorkspace.shared.open(url)
+        #endif
     }
 }
