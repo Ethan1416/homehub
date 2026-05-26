@@ -454,7 +454,7 @@
     "mangledTypeName": "13HomeHubWidget10SkipIntentV",
     "kind": "struct",
     "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-    "line": 66,
+    "line": 70,
     "conformances": [
       "AppIntents.AppIntent",
       "AppIntents.PersistentlyIdentifiable",
@@ -507,7 +507,7 @@
         "isStatic": "false",
         "isComputed": "false",
         "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-        "line": 70,
+        "line": 74,
         "valueKind": "InitCall",
         "value": {
           "type": "AppIntents.IntentParameter<Swift.String>",
@@ -557,7 +557,7 @@
         "isStatic": "false",
         "isComputed": "false",
         "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-        "line": 71,
+        "line": 75,
         "valueKind": "InitCall",
         "value": {
           "type": "AppIntents.IntentParameter<Swift.String>",
@@ -607,7 +607,7 @@
         "isStatic": "false",
         "isComputed": "false",
         "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-        "line": 72,
+        "line": 76,
         "valueKind": "InitCall",
         "value": {
           "type": "AppIntents.IntentParameter<Swift.String>",
@@ -657,7 +657,7 @@
         "isStatic": "true",
         "isComputed": "false",
         "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-        "line": 67,
+        "line": 71,
         "valueKind": "RawLiteral",
         "value": "Skip"
       },
@@ -668,7 +668,7 @@
         "isStatic": "true",
         "isComputed": "false",
         "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-        "line": 68,
+        "line": 72,
         "valueKind": "RawLiteral",
         "value": "false"
       },
@@ -679,7 +679,7 @@
         "isStatic": "false",
         "isComputed": "true",
         "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-        "line": 70,
+        "line": 74,
         "valueKind": "InitCall",
         "value": {
           "type": "AppIntents.IntentParameter<Swift.String>",
@@ -725,7 +725,7 @@
           {
             "type": "AppIntents.IntentParameter",
             "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-            "line": 70,
+            "line": 74,
             "arguments": [
               {
                 "label": "title",
@@ -744,7 +744,7 @@
         "isStatic": "false",
         "isComputed": "true",
         "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-        "line": 70,
+        "line": 74,
         "valueKind": "Runtime"
       },
       {
@@ -754,7 +754,7 @@
         "isStatic": "false",
         "isComputed": "true",
         "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-        "line": 71,
+        "line": 75,
         "valueKind": "InitCall",
         "value": {
           "type": "AppIntents.IntentParameter<Swift.String>",
@@ -800,7 +800,7 @@
           {
             "type": "AppIntents.IntentParameter",
             "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-            "line": 71,
+            "line": 75,
             "arguments": [
               {
                 "label": "title",
@@ -819,7 +819,7 @@
         "isStatic": "false",
         "isComputed": "true",
         "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-        "line": 71,
+        "line": 75,
         "valueKind": "Runtime"
       },
       {
@@ -829,7 +829,7 @@
         "isStatic": "false",
         "isComputed": "true",
         "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-        "line": 72,
+        "line": 76,
         "valueKind": "InitCall",
         "value": {
           "type": "AppIntents.IntentParameter<Swift.String>",
@@ -875,7 +875,7 @@
           {
             "type": "AppIntents.IntentParameter",
             "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-            "line": 72,
+            "line": 76,
             "arguments": [
               {
                 "label": "title",
@@ -894,7 +894,7 @@
         "isStatic": "false",
         "isComputed": "true",
         "file": "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift",
-        "line": 72,
+        "line": 76,
         "valueKind": "Runtime"
       }
     ]

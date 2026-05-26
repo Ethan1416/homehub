@@ -1,0 +1,20 @@
+{
+  "" : {
+    "const-values" : "/Users/ethangrucza/homehub/mac-app/build-ios/Build/Intermediates.noindex/HomeHub.build/Release-iphoneos/HomeHub.build/Objects-normal/arm64/HomeHub-master.swiftconstvalues",
+    "dependencies" : "/Users/ethangrucza/homehub/mac-app/build-ios/Build/Intermediates.noindex/HomeHub.build/Release-iphoneos/HomeHub.build/Objects-normal/arm64/HomeHub-master.d",
+    "diagnostics" : "/Users/ethangrucza/homehub/mac-app/build-ios/Build/Intermediates.noindex/HomeHub.build/Release-iphoneos/HomeHub.build/Objects-normal/arm64/HomeHub-master.dia",
+    "emit-module-dependencies" : "/Users/ethangrucza/homehub/mac-app/build-ios/Build/Intermediates.noindex/HomeHub.build/Release-iphoneos/HomeHub.build/Objects-normal/arm64/HomeHub-master-emit-module.d",
+    "emit-module-diagnostics" : "/Users/ethangrucza/homehub/mac-app/build-ios/Build/Intermediates.noindex/HomeHub.build/Release-iphoneos/HomeHub.build/Objects-normal/arm64/HomeHub-master-emit-module.dia",
+    "swift-dependencies" : "/Users/ethangrucza/homehub/mac-app/build-ios/Build/Intermediates.noindex/HomeHub.build/Release-iphoneos/HomeHub.build/Objects-normal/arm64/HomeHub-master.swiftdeps"
+  },
+  "/Users/ethangrucza/homehub/mac-app/App/HomeHubApp.swift" : {
+    "index-unit-output-path" : "/HomeHub.build/Release-iphoneos/HomeHub.build/Objects-normal/arm64/HomeHubApp.o",
+    "llvm-bc" : "/Users/ethangrucza/homehub/mac-app/build-ios/Build/Intermediates.noindex/HomeHub.build/Release-iphoneos/HomeHub.build/Objects-normal/arm64/HomeHubApp.bc",
+    "object" : "/Users/ethangrucza/homehub/mac-app/build-ios/Build/Intermediates.noindex/HomeHub.build/Release-iphoneos/HomeHub.build/Objects-normal/arm64/HomeHubApp.o"
+  },
+  "/Users/ethangrucza/homehub/mac-app/Shared/HomeHubService.swift" : {
+    "index-unit-output-path" : "/HomeHub.build/Release-iphoneos/HomeHub.build/Objects-normal/arm64/HomeHubService.o",
+    "llvm-bc" : "/Users/ethangrucza/homehub/mac-app/build-ios/Build/Intermediates.noindex/HomeHub.build/Release-iphoneos/HomeHub.build/Objects-normal/arm64/HomeHubService.bc",
+    "object" : "/Users/ethangrucza/homehub/mac-app/build-ios/Build/Intermediates.noindex/HomeHub.build/Release-iphoneos/HomeHub.build/Objects-normal/arm64/HomeHubService.o"
+  }
+}

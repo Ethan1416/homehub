@@ -59,6 +59,10 @@ struct MarkDoneIntent: AppIntent {
         try await HomeHubService.upsertProgress(
             eventId: eventId, dayKey: day, itemKey: itemKey,
             done: true, skipped: false)
+        // Force the widget to re-fetch immediately so the user sees the next
+        // task right after their tap, instead of waiting for the next system
+        // timeline refresh.
+        WidgetCenter.shared.reloadAllTimelines()
         return .result()
     }
 }
@@ -80,6 +84,7 @@ struct SkipIntent: AppIntent {
         try await HomeHubService.upsertProgress(
             eventId: eventId, dayKey: day, itemKey: itemKey,
             done: false, skipped: true)
+        WidgetCenter.shared.reloadAllTimelines()
         return .result()
     }
 }
