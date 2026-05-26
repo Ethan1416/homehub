@@ -109,6 +109,15 @@ enum HomeHubParser {
         return stripped.components(separatedBy: "—").first?.trimmingCharacters(in: .whitespaces) ?? stripped
     }
 
+    // Normalize an exercise name for cross-event matching. "Cable fly", "1. Cable fly — 3 sets",
+    // "Cable Fly (Iso)" all collapse to "cable fly".
+    static func normalizeExercise(_ label: String) -> String {
+        var t = stripNum(label)
+        t = t.replacingOccurrences(of: #"\(.*?\)"#, with: "", options: .regularExpression)
+        t = t.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+        return t.trimmingCharacters(in: .whitespaces).lowercased()
+    }
+
     static func ymd(_ d: Date) -> String {
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd"; f.timeZone = .current
         return f.string(from: d)
@@ -217,13 +226,27 @@ enum HomeHubService {
     static func loadSnapshot() async throws -> HHSnapshot {
         let today = Date()
         let dayKey = HomeHubParser.ymd(today)
-        // Look back 30 days for streak + last-set computation.
-        let sinceDate = Calendar.current.date(byAdding: .day, value: -30, to: today)!
+        // Look back 180 days for the PR-at-10 anchor (might be older than 30
+        // days). Streak only uses last 30 within this set.
+        let sinceDate = Calendar.current.date(byAdding: .day, value: -180, to: today)!
         let sinceKey = HomeHubParser.ymd(sinceDate)
         async let events: [HHEvent] = get("events", "select=*")
-        async let progress30: [ProgressRow] = get("progress", "select=*&log_date=gte.\(sinceKey)&user_id=eq.\(HomeHubConfig.user)")
+        async let progressHistory: [ProgressRow] = get("progress", "select=*&log_date=gte.\(sinceKey)&user_id=eq.\(HomeHubConfig.user)")
         async let overrides: [GymOverride] = get("gym_override", "select=*&log_date=eq.\(dayKey)&user_id=eq.\(HomeHubConfig.user)")
-        let (allEvents, allRecentProgress, allOverrides) = try await (events, progress30, overrides)
+        let (allEvents, allRecentProgress, allOverrides) = try await (events, progressHistory, overrides)
+
+        // Build a (event_id, group_key) → normalizedExerciseName lookup across
+        // ALL events. Used so the PR-at-10 anchor can match the same exercise
+        // logged under any routine, not just today's.
+        var exerciseLookup: [String: [String: String]] = [:]
+        for ev in allEvents {
+            let parsed = HomeHubParser.parse(ev)
+            var groupMap: [String: String] = [:]
+            for g in parsed.groups {
+                groupMap[g.key] = HomeHubParser.normalizeExercise(g.label)
+            }
+            exerciseLookup[ev.id] = groupMap
+        }
         // Today-only progress is a subset of the 30-day fetch.
         let allProgress = allRecentProgress.filter { $0.log_date == dayKey }
 
@@ -294,27 +317,28 @@ enum HomeHubService {
                 case .meal: kindStr = "meal"
                 case .simple: kindStr = "simple"
                 }
-                // PR anchor for gym exercises: heaviest weight ever logged on
-                // this exercise where reps >= 10 (any "10+ rep best" PR is the
-                // most motivating benchmark to beat — heavier than just "last
-                // session"). Looks back through past 30 days for this exercise
-                // by event_id + group prefix (eg "g0#").
+                // PR anchor for gym exercises: heaviest weight ever logged for
+                // THIS exercise (matched by normalized name across ALL events)
+                // where reps >= 10. Cable fly logged in Chest+Triceps still
+                // counts when Cable fly is today's Chest+Shoulders set.
                 var lastWeight: String? = nil
                 var lastReps: String? = nil
                 var lastEffort: String? = nil
                 if kindStr == "gym" {
-                    let prefix = open.key.split(separator: "#").first.map(String.init) ?? ""
+                    let currentExName = HomeHubParser.normalizeExercise(open.label)
                     let candidates = allRecentProgress
                         .filter { row in
-                            guard row.event_id == e.id else { return false }
-                            guard row.item_key.hasPrefix("\(prefix)#") else { return false }
                             guard (row.done ?? false) else { return false }
                             guard let w = row.weight, !w.isEmpty,
                                   Double(w.trimmingCharacters(in: .whitespaces)) != nil else { return false }
                             guard let r = row.reps,
                                   let ri = Int(r.trimmingCharacters(in: .whitespaces)),
                                   ri >= 10 else { return false }
-                            return true
+                            // Look up exercise name for this progress row's
+                            // (event_id, group prefix) and match against current.
+                            let prefix = row.item_key.split(separator: "#").first.map(String.init) ?? ""
+                            let rowExName = exerciseLookup[row.event_id]?[prefix] ?? ""
+                            return rowExName == currentExName
                         }
                         .sorted { a, b in
                             let wa = Double(a.weight ?? "") ?? 0

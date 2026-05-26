@@ -46,9 +46,15 @@ struct EmbeddedAppView: View {
 
     var body: some View {
         ZStack {
-            // PWA (always loading underneath the splash)
-            HomeHubWebView(loaded: $loaded)
+            // Solid behind-the-webview backdrop so any safe-area gap (status bar /
+            // home indicator) bleeds the right color, not white.
+            Color(.sRGB, red: 0.055, green: 0.066, blue: 0.090, opacity: 1)
                 .ignoresSafeArea()
+
+            // PWA — explicit full-screen frame, ignores ALL safe areas.
+            HomeHubWebView(loaded: $loaded)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .ignoresSafeArea(.all, edges: .all)
                 .opacity(loaded ? 1 : 0)
 
             // Splash on top until the page finishes loading
@@ -68,14 +74,22 @@ struct HomeHubWebView: UIViewRepresentable {
         let cfg = WKWebViewConfiguration()
         cfg.websiteDataStore = .default()  // persist cookies / localStorage
         cfg.allowsInlineMediaPlayback = true
+        // Tell the PWA we're in standalone (PWA-like) mode.
+        cfg.applicationNameForUserAgent = "Mobile/15E148 HomeHubApp/1.0"
 
         let view = WKWebView(frame: .zero, configuration: cfg)
         view.navigationDelegate = context.coordinator
         view.scrollView.bounces = true
         view.scrollView.contentInsetAdjustmentBehavior = .never
+        view.scrollView.contentInset = .zero
+        view.scrollView.scrollIndicatorInsets = .zero
+        view.scrollView.verticalScrollIndicatorInsets = .zero
         view.backgroundColor = UIColor(red: 0.055, green: 0.066, blue: 0.090, alpha: 1)
+        view.scrollView.backgroundColor = UIColor(red: 0.055, green: 0.066, blue: 0.090, alpha: 1)
         view.isOpaque = false
         view.allowsBackForwardNavigationGestures = true
+        view.translatesAutoresizingMaskIntoConstraints = true
+        view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.load(URLRequest(url: HomeHubConfig.appURL))
         return view
     }
@@ -88,6 +102,18 @@ struct HomeHubWebView: UIViewRepresentable {
         @Binding var loaded: Bool
         init(loaded: Binding<Bool>) { _loaded = loaded }
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            // Force the viewport to actually fill — some PWAs apply margin via
+            // CSS env(safe-area-inset-*); we override to render edge-to-edge.
+            let css = """
+            html, body { margin: 0 !important; padding: 0 !important;
+              min-height: 100vh !important; min-height: 100dvh !important;
+              background: #0e1117 !important; }
+            """
+            let js = """
+            var s = document.createElement('style'); s.innerHTML = `\(css)`;
+            document.head.appendChild(s);
+            """
+            webView.evaluateJavaScript(js) { _, _ in }
             // Tiny pause so the page paints before we cross-fade
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
                 self.loaded = true
