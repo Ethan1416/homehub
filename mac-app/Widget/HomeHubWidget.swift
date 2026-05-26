@@ -94,108 +94,133 @@ struct SkipIntent: AppIntent {
 struct HHWidgetView: View {
     let entry: HHEntry
 
+    // Widget palette
+    private let bg = Color(.sRGB, red: 0.055, green: 0.066, blue: 0.090, opacity: 1)
+    private let text = Color.white
+    private let muted = Color(white: 0.55)
+    private let good = Color(.sRGB, red: 0.37, green: 0.82, blue: 0.63)
+    private let goodBG = Color(.sRGB, red: 0.11, green: 0.23, blue: 0.16)
+    private let skipBG = Color(.sRGB, red: 0.165, green: 0.165, blue: 0.21)
+    private let accent = Color(.sRGB, red: 0.49, green: 0.61, blue: 1)
+
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            Color(.sRGB, red: 0.055, green: 0.066, blue: 0.090, opacity: 1)
-            content
-                .padding(.horizontal, 12)
-                .padding(.vertical, 10)
-        }
-        .widgetURL(HomeHubConfig.appURL)
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding(14)
     }
 
     @ViewBuilder private var content: some View {
         let s = entry.snapshot
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("HOMEHUB")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Color(white: 0.55))
-                    .tracking(0.5)
-                Spacer()
-                if s.totalAll > 0 {
-                    Text("\(s.totalDone)/\(s.totalAll)")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Color(white: 0.55))
-                }
-            }
-
-            if let next = s.next {
-                Text(next.eventTitle)
-                    .font(.system(size: 14, weight: .heavy))
-                    .lineLimit(1)
-                    .foregroundStyle(.white)
-
-                HStack(spacing: 10) {
-                    Button(intent: MarkDoneIntent(eventId: next.eventId,
-                                                  itemKey: next.itemKey,
-                                                  day: s.dayKey)) {
-                        Text("✓")
-                            .font(.system(size: 22, weight: .black))
-                            .foregroundStyle(Color(.sRGB, red: 0.37, green: 0.82, blue: 0.63))
-                            .frame(width: 48, height: 48)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(.sRGB, red: 0.11, green: 0.23, blue: 0.16))
-                            )
-                    }
-                    .buttonStyle(.plain)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(next.label)
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                        if next.totalSets > 0 {
-                            Text("set \(next.setNum)/\(next.totalSets)")
-                                .font(.system(size: 11))
-                                .foregroundStyle(Color(.sRGB, red: 0.49, green: 0.61, blue: 1))
-                        }
-                    }
-                    Spacer(minLength: 0)
-
-                    Button(intent: SkipIntent(eventId: next.eventId,
-                                              itemKey: next.itemKey,
-                                              day: s.dayKey)) {
-                        Text("↷")
-                            .font(.system(size: 22, weight: .black))
-                            .foregroundStyle(Color(white: 0.65))
-                            .frame(width: 48, height: 48)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(.sRGB, red: 0.165, green: 0.165, blue: 0.21))
-                            )
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                Spacer(minLength: 0)
-                HStack {
-                    Text(next.allDay ? "All day" : fmtTime(next.startTime))
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color(white: 0.55))
-                    Spacer()
-                    Text("\(next.eventDone)/\(next.eventTotal)")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(Color(.sRGB, red: 0.37, green: 0.82, blue: 0.63))
-                }
+        if let next = s.next {
+            if next.eventKind == "gym" {
+                gymView(next: next)
             } else {
-                Spacer(minLength: 0)
-                if s.eventCount == 0 {
-                    Text("Nothing scheduled today.")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color(white: 0.68))
-                } else {
-                    Text("All done for today 🎉")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(Color(.sRGB, red: 0.37, green: 0.82, blue: 0.63))
-                    Text("\(s.totalAll)/\(s.totalAll) moved past")
-                        .font(.system(size: 11))
-                        .foregroundStyle(Color(white: 0.55))
-                }
-                Spacer(minLength: 0)
+                checklistView(next: next, dayKey: s.dayKey)
+            }
+        } else {
+            emptyView(eventCount: s.eventCount)
+        }
+    }
+
+    // ── Gym: entire widget surface → opens app (no done/skip buttons,
+    // since each set needs weight/reps/effort entry that the widget can't do).
+    private func gymView(next: OpenItem) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(next.eventTitle)
+                .font(.system(size: 13, weight: .heavy))
+                .lineLimit(1)
+                .foregroundStyle(muted)
+            Spacer(minLength: 4)
+            Text(next.label)
+                .font(.system(size: 22, weight: .heavy))
+                .lineLimit(2)
+                .foregroundStyle(text)
+                .minimumScaleFactor(0.75)
+            if next.totalSets > 0 {
+                Text("Set \(next.setNum) of \(next.totalSets)")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(accent)
+            }
+            Spacer(minLength: 4)
+            HStack {
+                Text(next.allDay ? "All day" : fmtTime(next.startTime))
+                    .font(.system(size: 11))
+                    .foregroundStyle(muted)
+                Spacer()
+                Text("Tap to log →")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(accent)
             }
         }
+        .widgetURL(HomeHubConfig.appURL)   // whole widget opens the app
+    }
+
+    // ── Meal / simple tasks: ✓ and ↷ buttons (no data to capture).
+    private func checklistView(next: OpenItem, dayKey: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(next.eventTitle)
+                .font(.system(size: 13, weight: .heavy))
+                .lineLimit(1)
+                .foregroundStyle(muted)
+            Spacer(minLength: 0)
+            HStack(spacing: 10) {
+                Button(intent: MarkDoneIntent(eventId: next.eventId,
+                                              itemKey: next.itemKey,
+                                              day: dayKey)) {
+                    Text("✓")
+                        .font(.system(size: 22, weight: .black))
+                        .foregroundStyle(good)
+                        .frame(width: 48, height: 48)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(goodBG))
+                }
+                .buttonStyle(.plain)
+
+                Link(destination: HomeHubConfig.appURL) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(next.label)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(text)
+                            .lineLimit(2)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                Button(intent: SkipIntent(eventId: next.eventId,
+                                          itemKey: next.itemKey,
+                                          day: dayKey)) {
+                    Text("↷")
+                        .font(.system(size: 22, weight: .black))
+                        .foregroundStyle(muted)
+                        .frame(width: 48, height: 48)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(skipBG))
+                }
+                .buttonStyle(.plain)
+            }
+            Spacer(minLength: 0)
+            HStack {
+                Text(next.allDay ? "All day" : fmtTime(next.startTime))
+                    .font(.system(size: 11))
+                    .foregroundStyle(muted)
+            }
+        }
+    }
+
+    private func emptyView(eventCount: Int) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Spacer(minLength: 0)
+            if eventCount == 0 {
+                Text("Nothing scheduled today.")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(muted)
+            } else {
+                Text("All done for today 🎉")
+                    .font(.system(size: 17, weight: .heavy))
+                    .foregroundStyle(good)
+            }
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .widgetURL(HomeHubConfig.appURL)
     }
 
     private func fmtTime(_ d: Date) -> String {
@@ -211,11 +236,16 @@ struct HomeHubWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: HHProvider()) { entry in
             HHWidgetView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(for: .widget) {
+                    Color(.sRGB, red: 0.055, green: 0.066, blue: 0.090, opacity: 1)
+                }
         }
         .configurationDisplayName("HomeHub Next Task")
-        .description("Your next task today with Done / Skip buttons.")
+        .description("Your next task today.")
         .supportedFamilies([.systemMedium])
+        // Bring widget content to the corners — disable the system's auto
+        // 16pt padding so our dark background fills edge to edge.
+        .contentMarginsDisabled()
     }
 }
 

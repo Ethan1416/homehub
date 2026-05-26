@@ -134,6 +134,7 @@ enum HomeHubParser {
 struct OpenItem {
     let eventId: String
     let eventTitle: String
+    let eventKind: String    // "gym" | "meal" | "simple" — used to pick widget UI
     let allDay: Bool
     let startTime: Date
     let label: String        // stripped (no "1. ")
@@ -265,7 +266,14 @@ enum HomeHubService {
             totalDone += d; totalAll += t
             if next == nil, let open = firstOpen(parsed, p) {
                 let start = iso.date(from: e.starts_at) ?? isoNF.date(from: e.starts_at) ?? Date()
+                let kindStr: String
+                switch parsed.kind {
+                case .gym: kindStr = "gym"
+                case .meal: kindStr = "meal"
+                case .simple: kindStr = "simple"
+                }
                 next = OpenItem(eventId: e.id, eventTitle: e.title,
+                                eventKind: kindStr,
                                 allDay: e.all_day ?? false,
                                 startTime: start,
                                 label: open.label, itemKey: open.key,

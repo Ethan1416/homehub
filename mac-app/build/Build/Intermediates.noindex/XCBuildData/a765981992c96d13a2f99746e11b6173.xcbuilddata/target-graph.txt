@@ -1,4 +1,0 @@
-Target dependency graph (2 targets)
-Target 'HomeHub' in project 'HomeHub'
-➜ Explicit dependency on target 'HomeHubWidget' in project 'HomeHub'
-Target 'HomeHubWidget' in project 'HomeHub' (no dependencies)

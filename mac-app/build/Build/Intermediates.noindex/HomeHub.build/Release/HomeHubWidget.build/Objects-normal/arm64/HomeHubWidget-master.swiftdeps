@@ -1,7 +1,0 @@
-version: "Apple Swift version 6.1 (swiftlang-6.1.0.110.21 clang-1700.0.13.3)"
-options: "41f241e9aa85ac4a5d2f18321539c4c319882aefbe2dcad32e67bf07127a4fb0"
-build_start_time: [1779822781, 190097000]
-build_end_time: [1779822810, 126579000]
-inputs:
-  "/Users/ethangrucza/homehub/mac-app/Shared/HomeHubService.swift": [1779818394, 944190561]
-  "/Users/ethangrucza/homehub/mac-app/Widget/HomeHubWidget.swift": [1779822717, 583332322]

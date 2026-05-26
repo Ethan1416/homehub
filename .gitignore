@@ -5,3 +5,15 @@ dist
 .DS_Store
 *.log
 .vercel
+
+# Xcode / iOS build artifacts
+mac-app/build/
+mac-app/build-ios/
+mac-app/HomeHub.xcodeproj/
+*.xcuserdata/
+DerivedData/
+
+# Python caches
+__pycache__/
+*.pyc
+.venv/
