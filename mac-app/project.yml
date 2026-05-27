@@ -23,7 +23,7 @@ targets:
     supportedDestinations: [macOS, iOS]
     sources:
       - path: App
-        excludes: ["HomeHub.entitlements"]
+        excludes: ["HomeHub.entitlements", "Info-iOS.plist"]
       - Shared
     settings:
       base:
@@ -32,13 +32,17 @@ targets:
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.productivity"
         TARGETED_DEVICE_FAMILY: "1,2"
         CODE_SIGN_ENTITLEMENTS: App/HomeHub.entitlements
-        # Hide the iOS status bar at the system level so the WKWebView can
-        # render edge-to-edge under it. Combined with SwiftUI's
-        # .statusBarHidden(true) and .persistentSystemOverlays(.hidden), this
-        # reclaims the top safe-area-inset for our content.
-        INFOPLIST_KEY_UIStatusBarHidden: YES
-        INFOPLIST_KEY_UIViewControllerBasedStatusBarAppearance: NO
-        INFOPLIST_KEY_UIRequiresFullScreen: YES
+      configs:
+        Debug:
+          INFOPLIST_FILE[sdk=iphoneos*]: App/Info-iOS.plist
+          INFOPLIST_FILE[sdk=iphonesimulator*]: App/Info-iOS.plist
+          GENERATE_INFOPLIST_FILE[sdk=iphoneos*]: NO
+          GENERATE_INFOPLIST_FILE[sdk=iphonesimulator*]: NO
+        Release:
+          INFOPLIST_FILE[sdk=iphoneos*]: App/Info-iOS.plist
+          INFOPLIST_FILE[sdk=iphonesimulator*]: App/Info-iOS.plist
+          GENERATE_INFOPLIST_FILE[sdk=iphoneos*]: NO
+          GENERATE_INFOPLIST_FILE[sdk=iphonesimulator*]: NO
     dependencies:
       - target: HomeHubWidget
         embed: true
