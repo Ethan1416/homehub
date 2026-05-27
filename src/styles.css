@@ -14,6 +14,34 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; }
+
+/* When embedded inside the native HomeHubApp wrapper, drop all PWA-side
+   safe-area padding. The native shell already extends edge-to-edge, so
+   these env() insets just create double-black gaps. The shell adds the
+   class `is-embedded-app` to <html> on launch. */
+html.is-embedded-app, html.is-embedded-app body, html.is-embedded-app #root {
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+}
+html.is-embedded-app .ph,
+html.is-embedded-app .pinwrap,
+html.is-embedded-app .ugwrap,
+html.is-embedded-app .phone {
+  min-height: 100dvh !important;
+}
+html.is-embedded-app .ph {
+  padding: 22px 22px 0 !important;
+}
+html.is-embedded-app .ph-top {
+  margin: -22px -22px 16px !important;
+  padding: 14px 18px 14px !important;
+}
+html.is-embedded-app .ph-head { padding: 20px 20px 14px !important; }
+html.is-embedded-app .phone { padding-bottom: 0 !important; }
+html.is-embedded-app .tab-content { padding-bottom: 96px !important; }
+html.is-embedded-app .grid-bottom { padding-bottom: 86px !important; }
+html.is-embedded-app .fab { bottom: 86px !important; }
+html.is-embedded-app .tabbar { padding: 8px 18px 10px !important; }
 body {
   background:
     radial-gradient(1100px 700px at 50% -15%, #1a2030 0%, transparent 60%),
