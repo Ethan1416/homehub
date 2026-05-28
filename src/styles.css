@@ -32,12 +32,11 @@ html.is-embedded-app, html.is-embedded-app body, html.is-embedded-app #root {
   height: 100dvh !important;
   min-height: 100dvh !important;
 }
-/* iPhone safe-area-top: Dynamic Island / notch reserves ~50pt at the top.
-   Our WKWebView forces safeAreaInsets=.zero (so the page renders edge-to-edge
-   for the background), but content needs to start BELOW the island so it
-   isn't covered. Hardcoded 50px here — works for all modern iPhones from
-   X (notch) up to 15 Pro Max (Dynamic Island). */
-html.is-embedded-app { --hh-safe-top: 50px; }
+/* iPhone safe-area-top: iPhone 15 Pro Max reserves 59pt for the Dynamic
+   Island. Our WKWebView forces safeAreaInsets=.zero (so the page renders
+   edge-to-edge for backgrounds), but content needs to start BELOW the
+   island so it isn't covered. 64px = 59 + 5 breathing room. */
+html.is-embedded-app { --hh-safe-top: 64px; }
 html.is-embedded-app .ph,
 html.is-embedded-app .pinwrap,
 html.is-embedded-app .ugwrap,
