@@ -239,6 +239,56 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
         <div className="cl-body" ref={bodyRef}>
           {parsed.info.map((t, i) => <div className="cl-info" key={i}>{t}</div>)}
 
+          {/* "Coming up" overview — only for gym workouts with 3+ exercises.
+              Each chip shows the exercise + state. Tap to scroll to it. */}
+          {parsed.kind === 'gym' && parsed.groups.length >= 3 && (
+            <div className="cl-overview" role="navigation" aria-label="Exercise overview">
+              <div className="cl-overview-label">Coming up</div>
+              <div className="cl-overview-row">
+                {parsed.groups.map((g, idx) => {
+                  if (g.sets === 0) return null
+                  const totalSets = effectiveSetCount(g)
+                  const setKeys = Array.from({ length: totalSets }, (_, s) => `${g.key}#${s}`)
+                  const setStates = setKeys.map((k) => cellState(cell(k)))
+                  const allDone = setStates.length > 0 && setStates.every((s) => s === 'done')
+                  const allSkipped = setStates.length > 0 && setStates.every((s) => s === 'skipped')
+                  const hasSkipped = setStates.some((s) => s === 'skipped')
+                  const hasDone = setStates.some((s) => s === 'done')
+                  const hasOpen = setStates.some((s) => s === 'open')
+                  // First exercise with any open set = "active"
+                  const isActive = hasOpen &&
+                    !parsed.groups.slice(0, idx).some((pg) => {
+                      if (pg.sets === 0) return false
+                      const pkeys = Array.from({ length: effectiveSetCount(pg) }, (_, s) => `${pg.key}#${s}`)
+                      return pkeys.some((k) => cellState(cell(k)) === 'open')
+                    })
+                  const state = allDone ? 'done'
+                    : allSkipped ? 'skipped'
+                    : isActive ? 'active'
+                    : hasOpen ? 'open' : 'mixed'
+                  const icon = state === 'done' ? '✓'
+                    : state === 'skipped' ? '↷'
+                    : state === 'active' ? '▸' : '○'
+                  return (
+                    <button
+                      key={g.key}
+                      className={`cl-overview-chip cl-ov-${state}`}
+                      onClick={() => {
+                        const el = document.getElementById(`ex-${g.key}`)
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                        setExExpanded((e) => ({ ...e, [g.key]: true }))
+                      }}
+                      title={stripNum(g.label)}>
+                      <span className="cl-ov-icon">{icon}</span>
+                      <span className="cl-ov-name">{stripNum(g.label)}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="cl-overview-hint">Tap to jump · machine busy? hit ↷ to come back later</div>
+            </div>
+          )}
+
           {parsed.groups.map((g) => {
             if (g.sets === 0) {
               // Non-set checkable item (meal component / simple)
@@ -272,6 +322,7 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
               return (
                 <button className={`cl-ex-done ${allSkipped ? 'all-skipped' : skippedCount ? 'partial' : ''}`}
                   key={g.key}
+                  id={`ex-${g.key}`}
                   onClick={() => setExExpanded((e) => ({ ...e, [g.key]: true }))}>
                   <span className="cl-ex-name">{stripNum(g.label)}</span>
                   <span className="cs-tick">
@@ -284,7 +335,7 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
             const trend = trendByKey[exerciseKey(g.label)]
             const hasRemaining = setStates.some((s) => s === 'open')
             return (
-              <div className="cl-ex" key={g.key}>
+              <div className="cl-ex" key={g.key} id={`ex-${g.key}`}>
                 <div className="cl-ex-name-row">
                   {onOpenExercise && parsed.kind === 'gym' ? (
                     <button className="cl-ex-name cl-ex-link"

@@ -14,6 +14,15 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body, #root { height: 100%; }
+/* Prevent double-tap zoom and pinch-zoom across the app. */
+html, body {
+  touch-action: pan-y manipulation;
+  -webkit-text-size-adjust: 100%;
+  -webkit-touch-callout: none;
+}
+input, textarea, select, button {
+  font-size: 16px; /* prevents iOS auto-zoom on input focus */
+}
 
 /* When embedded inside the native HomeHubApp wrapper, drop all PWA-side
    safe-area padding. The native shell already extends edge-to-edge, so
@@ -805,6 +814,38 @@ button { font: inherit; cursor: pointer; border: none; }
   text-align: left; }
 .cl-set-mini .cs-num { font-size: 12px; color: var(--text); font-weight: 700; }
 .cl-set-mini .cs-tick { font-size: 14px; color: var(--good); font-weight: 800; }
+
+/* ─── "Coming up" overview at top of gym checklist ─────────────────── */
+.cl-overview { margin: -4px -4px 14px; padding: 10px 4px 6px;
+  background: linear-gradient(180deg, rgba(91,110,245,.06) 0%, transparent 100%);
+  border-radius: 14px; }
+.cl-overview-label { font-size: 10px; font-weight: 800; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--muted); padding: 0 8px 6px; }
+.cl-overview-row { display: flex; gap: 6px; overflow-x: auto;
+  padding: 2px 6px; scrollbar-width: none; }
+.cl-overview-row::-webkit-scrollbar { display: none; }
+.cl-overview-chip { display: inline-flex; align-items: center; gap: 6px;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  padding: 7px 11px; border-radius: 999px; flex-shrink: 0;
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  transition: transform .1s, background .12s; }
+.cl-overview-chip:active { transform: scale(.96); }
+.cl-overview-chip .cl-ov-icon { font-size: 11px; font-weight: 800; }
+.cl-overview-chip .cl-ov-name { max-width: 110px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.cl-overview-chip.cl-ov-done { background: rgba(47,179,128,.10);
+  border-color: rgba(47,179,128,.35); color: #167551; }
+.cl-overview-chip.cl-ov-done .cl-ov-icon { color: var(--good); }
+.cl-overview-chip.cl-ov-skipped { background: rgba(150,155,176,.10);
+  border-color: rgba(150,155,176,.4); color: var(--muted);
+  text-decoration: line-through; }
+.cl-overview-chip.cl-ov-active { background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: white; border-color: transparent;
+  box-shadow: 0 4px 12px rgba(91,110,245,.35); }
+.cl-overview-chip.cl-ov-active .cl-ov-icon { color: white; }
+.cl-overview-chip.cl-ov-open { color: var(--text); }
+.cl-overview-hint { font-size: 10.5px; color: var(--muted);
+  padding: 8px 8px 2px; text-align: center; }
 
 /* ─── Skipped state (per-set, per-exercise, per-item) ─────────────────── */
 /* Skip button next to the green check, per-set */

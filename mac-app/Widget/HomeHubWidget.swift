@@ -31,7 +31,10 @@ struct HHProvider: TimelineProvider {
         Task {
             let snap = (try? await HomeHubService.loadSnapshot()) ?? Self.emptySnap
             let entry = HHEntry(date: Date(), snapshot: snap)
-            let next = Date().addingTimeInterval(600)
+            // Refresh every 2 minutes so PWA-side completions / skips appear
+            // promptly. iOS may rate-limit (it allots ~40-70 widget reloads
+            // per app per day) but this is the more aggressive target.
+            let next = Date().addingTimeInterval(120)
             completion(Timeline(entries: [entry], policy: .after(next)))
         }
     }
