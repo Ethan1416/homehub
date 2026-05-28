@@ -32,6 +32,12 @@ html.is-embedded-app, html.is-embedded-app body, html.is-embedded-app #root {
   height: 100dvh !important;
   min-height: 100dvh !important;
 }
+/* iPhone safe-area-top: Dynamic Island / notch reserves ~50pt at the top.
+   Our WKWebView forces safeAreaInsets=.zero (so the page renders edge-to-edge
+   for the background), but content needs to start BELOW the island so it
+   isn't covered. Hardcoded 50px here — works for all modern iPhones from
+   X (notch) up to 15 Pro Max (Dynamic Island). */
+html.is-embedded-app { --hh-safe-top: 50px; }
 html.is-embedded-app .ph,
 html.is-embedded-app .pinwrap,
 html.is-embedded-app .ugwrap,
@@ -39,18 +45,22 @@ html.is-embedded-app .phone {
   min-height: 100dvh !important;
 }
 html.is-embedded-app .ph {
-  padding: 22px 22px 0 !important;
+  padding: calc(var(--hh-safe-top) + 22px) 22px 0 !important;
 }
 html.is-embedded-app .ph-top {
-  margin: -22px -22px 16px !important;
-  padding: 14px 18px 14px !important;
+  margin: calc(-1 * (var(--hh-safe-top) + 22px)) -22px 16px !important;
+  padding: calc(var(--hh-safe-top) + 14px) 18px 14px !important;
 }
-html.is-embedded-app .ph-head { padding: 20px 20px 14px !important; }
+html.is-embedded-app .ph-head { padding: calc(var(--hh-safe-top) + 20px) 20px 14px !important; }
 html.is-embedded-app .phone { padding-bottom: 0 !important; }
 html.is-embedded-app .tab-content { padding-bottom: 96px !important; }
 html.is-embedded-app .grid-bottom { padding-bottom: 86px !important; }
 html.is-embedded-app .fab { bottom: 86px !important; }
 html.is-embedded-app .tabbar { padding: 8px 18px 10px !important; }
+/* Focused checklist sheet also needs to clear the Dynamic Island. */
+html.is-embedded-app .sheet.focused .fc-head {
+  padding-top: calc(var(--hh-safe-top) + 14px) !important;
+}
 body {
   background:
     radial-gradient(1100px 700px at 50% -15%, #1a2030 0%, transparent 60%),
@@ -834,6 +844,10 @@ button { font: inherit; cursor: pointer; border: none; }
   white-space: nowrap; }
 .fc-title b { font-size: 14px; font-weight: 800; color: var(--text); }
 .fc-title b span { color: var(--muted); font-weight: 600; }
+.fc-title-btn { background: transparent; border: none; padding: 4px 8px;
+  border-radius: 8px; cursor: pointer; }
+.fc-title-btn:active { background: var(--panel-2); }
+.fc-title-btn small { color: var(--accent); }
 
 .fc-bar { height: 4px; background: var(--panel-2); margin: 0 16px; border-radius: 2px; overflow: hidden; }
 .fc-bar-fill { height: 100%;

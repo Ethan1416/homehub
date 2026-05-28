@@ -17,7 +17,7 @@ const EFFORT_OPTS = [
   ['max', 'max']
 ]
 
-export default function FocusedChecklistSheet({ event, day, user = 'ethan', onClose, onReorder }) {
+export default function FocusedChecklistSheet({ event, day, user = 'ethan', onClose, openGymPicker, onBuildCustom }) {
   const parsed = parseEvent(event)
   const logDate = ymd(day)
   const { byEvent } = useProgress(logDate, user)
@@ -128,10 +128,12 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', onCl
         {/* Header */}
         <div className="fc-head">
           <button className="fc-back" onClick={onClose}>✕</button>
-          <div className="fc-title">
-            <small>{event.title.replace(/^[🏋️\s]+/, '').replace(/^Gym\s+[—-]\s+/, '')}</small>
+          <button className="fc-title fc-title-btn"
+            onClick={() => openGymPicker && openGymPicker()}
+            title="Change routine">
+            <small>{event.title.replace(/^[🏋️\s]+/, '').replace(/^Gym\s+[—-]\s+/, '')} ⇄</small>
             <b>{activeIdx + 1} <span>of</span> {groups.length}</b>
-          </div>
+          </button>
           <button className="fc-back" onClick={() => setReorderOpen(true)} title="Reorder">≡</button>
         </div>
 
