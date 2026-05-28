@@ -40,15 +40,41 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
+
     func scene(_ scene: UIScene,
                willConnectTo session: UISceneSession,
                options connectionOptions: UIScene.ConnectionOptions) {
         guard let ws = scene as? UIWindowScene else { return }
-        let win = UIWindow(windowScene: ws)
+        let win = NoSafeAreaWindow(windowScene: ws)
+        win.frame = ws.screen.bounds
         win.rootViewController = WebHostController()
         self.window = win
         win.makeKeyAndVisible()
     }
+}
+
+/// UIWindow subclass that reports zero safe-area insets AND forces the root
+/// view controller's view to span the entire window after every layout pass.
+/// This defeats UIKit's automatic resizing of rootViewController.view to fit
+/// the safe area on iOS 18.
+final class NoSafeAreaWindow: UIWindow {
+    override var safeAreaInsets: UIEdgeInsets { .zero }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        // Force the root view to match our bounds exactly. UIKit's default
+        // behaviour on iOS 18 is to inset rootViewController.view by the
+        // safe-area top (status bar) and bottom (home indicator), which is
+        // what was creating the black bars.
+        if let rootView = rootViewController?.view, rootView.frame != bounds {
+            rootView.frame = bounds
+        }
+    }
+}
+
+/// UIView subclass returning zero safe-area insets.
+final class NoSafeAreaView: UIView {
+    override var safeAreaInsets: UIEdgeInsets { .zero }
 }
 
 /// WKWebView subclass that reports zero safe-area insets so the page's
@@ -57,27 +83,42 @@ final class FullBleedWebView: WKWebView {
     override var safeAreaInsets: UIEdgeInsets { .zero }
 }
 
-final class WebHostController: UIViewController {
+final class WebHostController: UIViewController, WKNavigationDelegate {
     private(set) var webView: FullBleedWebView!
 
-    // Status bar visible (so the user keeps time/battery) but the WebView
-    // renders UNDER it via viewport-fit=cover. Same for the home indicator.
-    override var prefersStatusBarHidden: Bool { false }
+    override var prefersStatusBarHidden: Bool { true }
     override var preferredStatusBarStyle: UIStatusBarStyle { .lightContent }
-    override var prefersHomeIndicatorAutoHidden: Bool { false }
+    override var prefersHomeIndicatorAutoHidden: Bool { true }
+
+    // Force-frame on every layout pass against the WINDOW bounds (not our
+    // view.bounds, which UIKit shrinks to safe area).
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
+        forceFullScreen()
+    }
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        forceFullScreen()
+    }
+    private func forceFullScreen() {
+        guard let win = view.window else { return }
+        let target = win.bounds
+        if view.frame != target { view.frame = target }
+        if let wv = webView, wv.frame != target { wv.frame = target }
+    }
 
     override func loadView() {
-        let container = UIView()
+        let container = NoSafeAreaView()
         container.backgroundColor = UIColor(red: 0.055, green: 0.066, blue: 0.090, alpha: 1)
 
-        // ── WKWebView config ──────────────────────────────────────────
         let cfg = WKWebViewConfiguration()
         cfg.websiteDataStore = .default()
         cfg.allowsInlineMediaPlayback = true
-        cfg.applicationNameForUserAgent = "Mobile/15E148 HomeHubApp/1.0"
+        // Default content mode (.recommended) — `.mobile` was forcing a
+        // 320×480 legacy viewport. Without it, WebKit picks viewport size
+        // from the WKWebView's actual frame width.
+        cfg.defaultWebpagePreferences.preferredContentMode = .recommended
 
-        // Inject is-embedded-app class on <html> at document-start so the
-        // PWA's CSS rules for the embedded shell take effect immediately.
         let markerJS = """
         (function(){
           function add() {
@@ -97,39 +138,42 @@ final class WebHostController: UIViewController {
         cfg.userContentController.addUserScript(
             WKUserScript(source: markerJS, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         )
-
-        // Clear caches so stale service-worker HTML can't override our class.
         WKWebsiteDataStore.default().removeData(
             ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),
             modifiedSince: .distantPast) {}
 
-        // ── The web view itself ───────────────────────────────────────
         let wv = FullBleedWebView(frame: .zero, configuration: cfg)
+        // ★ Spoof full Safari UA so the page (and WebKit itself) treats us
+        // like Mobile Safari. Without "Safari/X.X.X" suffix WebKit falls back
+        // to compat 320×480 viewport.
+        wv.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        wv.navigationDelegate = self
         wv.scrollView.contentInsetAdjustmentBehavior = .never
         wv.scrollView.contentInset = .zero
         wv.scrollView.scrollIndicatorInsets = .zero
-        wv.scrollView.verticalScrollIndicatorInsets = .zero
         wv.backgroundColor = UIColor(red: 0.055, green: 0.066, blue: 0.090, alpha: 1)
         wv.scrollView.backgroundColor = UIColor(red: 0.055, green: 0.066, blue: 0.090, alpha: 1)
         wv.isOpaque = false
         wv.allowsBackForwardNavigationGestures = true
-        wv.translatesAutoresizingMaskIntoConstraints = false
+        wv.translatesAutoresizingMaskIntoConstraints = true
+        wv.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
         container.addSubview(wv)
-        // ★ Pin to container edges (NOT safeAreaLayoutGuide). Container IS
-        // the root view of a UIWindow that fills the full UIWindowScene,
-        // so these edges go corner-to-corner of the device.
-        NSLayoutConstraint.activate([
-            wv.topAnchor.constraint(equalTo: container.topAnchor),
-            wv.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            wv.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            wv.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-        ])
-
         self.webView = wv
         self.view = container
+        wv.frame = container.bounds
+        // ★ Load URL in viewDidAppear instead of loadView — WebKit determines
+        // the viewport metrics at load() time. If we load while view.frame is
+        // .zero, it falls back to legacy 320×480 viewport. Loading after the
+        // view has real bounds means viewport = device width.
+    }
 
-        wv.load(URLRequest(url: HomeHubConfig.appURL))
+    private var didLoad = false
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        guard !didLoad else { return }
+        didLoad = true
+        webView.load(URLRequest(url: HomeHubConfig.appURL))
     }
 }
 
