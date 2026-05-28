@@ -815,6 +815,119 @@ button { font: inherit; cursor: pointer; border: none; }
 .cl-set-mini .cs-num { font-size: 12px; color: var(--text); font-weight: 700; }
 .cl-set-mini .cs-tick { font-size: 14px; color: var(--good); font-weight: 800; }
 
+/* ─── Focused single-exercise checklist ───────────────────────────── */
+.sheet.focused { display: flex; flex-direction: column;
+  background: var(--bg); color: var(--text);
+  height: 100dvh; overflow: hidden;
+  padding: 0; max-width: 560px; margin: 0 auto; }
+.fc-head { display: flex; align-items: center; gap: 10px;
+  padding: 14px 16px 8px; }
+.fc-back { width: 36px; height: 36px; border-radius: 50%;
+  background: var(--panel); border: 1px solid var(--line);
+  color: var(--text); font-size: 18px; font-weight: 700; display: flex;
+  align-items: center; justify-content: center; cursor: pointer; }
+.fc-back:active { background: var(--panel-2); }
+.fc-title { flex: 1; text-align: center; }
+.fc-title small { display: block; font-size: 11px; color: var(--muted);
+  font-weight: 600; letter-spacing: .4px; text-transform: uppercase;
+  margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; }
+.fc-title b { font-size: 14px; font-weight: 800; color: var(--text); }
+.fc-title b span { color: var(--muted); font-weight: 600; }
+
+.fc-bar { height: 4px; background: var(--panel-2); margin: 0 16px; border-radius: 2px; overflow: hidden; }
+.fc-bar-fill { height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--good) 100%);
+  border-radius: 2px; transition: width .3s; }
+
+.fc-nav { display: flex; align-items: center; gap: 8px;
+  padding: 14px 16px 10px; }
+.fc-nav-btn { width: 36px; height: 36px; border-radius: 50%;
+  background: var(--panel); border: 1px solid var(--line);
+  color: var(--text); font-size: 22px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; }
+.fc-nav-btn:disabled { opacity: .35; }
+.fc-nav-chips { flex: 1; display: flex; gap: 5px; align-items: center;
+  justify-content: center; }
+.fc-dot { width: 8px; height: 8px; border-radius: 50%;
+  background: var(--panel-2); border: 1px solid var(--line); padding: 0; }
+.fc-dot.on { background: var(--accent); transform: scale(1.4);
+  border-color: var(--accent); }
+.fc-dot.done { background: var(--good); border-color: var(--good); }
+.fc-dot.skipped { background: var(--muted); border-color: var(--muted); }
+
+.fc-ex { flex: 1; padding: 0 16px;
+  display: flex; flex-direction: column; gap: 14px;
+  min-height: 0; justify-content: center; }
+.fc-ex-name { font-size: 30px; font-weight: 900; letter-spacing: -.5px;
+  line-height: 1.05; text-align: center; color: var(--text); }
+.fc-ex-sub { text-align: center; font-size: 13px; color: var(--muted);
+  font-weight: 600; margin-top: -8px; }
+
+.fc-set { background: var(--panel); border: 1px solid var(--line);
+  border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.fc-row { display: grid; gap: 8px; }
+.fc-row-3 { grid-template-columns: 1fr 1fr 1.2fr; }
+.fc-row-2 { grid-template-columns: 1fr 1fr; }
+.fc-fld { display: flex; flex-direction: column; gap: 4px; }
+.fc-fld span { font-size: 10px; font-weight: 700; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .4px; padding-left: 4px; }
+.fc-fld input, .fc-fld select {
+  width: 100%; background: var(--panel-2); border: 1px solid var(--line);
+  color: var(--text); border-radius: 10px; padding: 12px 10px;
+  font-size: 16px; font-weight: 700; text-align: center; min-width: 0; }
+.fc-fld input:focus, .fc-fld select:focus { outline: 2px solid var(--accent);
+  outline-offset: 1px; }
+
+.fc-log { width: 100%; background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: white; border-radius: 14px; padding: 16px;
+  font-size: 16px; font-weight: 900; letter-spacing: .5px;
+  box-shadow: 0 6px 20px rgba(91,110,245,.32); border: none; }
+.fc-log:active { transform: scale(.985); }
+.fc-log:disabled { background: var(--good); opacity: .8; box-shadow: none; }
+
+.fc-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.fc-actions button { background: transparent; border: 1px dashed var(--line);
+  color: var(--muted); border-radius: 12px; padding: 10px 6px;
+  font-size: 12px; font-weight: 700; }
+.fc-actions button:active { color: var(--text); border-color: var(--accent); }
+
+.fc-up { display: flex; align-items: baseline; gap: 8px;
+  padding: 14px 18px;
+  background: linear-gradient(90deg, rgba(91,110,245,.06) 0%, transparent 100%);
+  border-top: 1px solid var(--line); }
+.fc-up small { font-size: 10px; font-weight: 800; letter-spacing: 1px;
+  color: var(--muted); text-transform: uppercase; }
+.fc-up b { font-size: 14px; font-weight: 800; color: var(--text);
+  flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-up span { font-size: 11px; color: var(--muted); font-weight: 600; }
+.fc-up-done b { color: var(--good); flex: none; }
+
+/* ─── Reorder modal ───────────────────────────────────────────────── */
+.reorder-scrim { position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,.5); display: flex; align-items: flex-end;
+  justify-content: center; }
+.reorder-sheet { background: var(--panel); width: 100%; max-width: 480px;
+  border-top-left-radius: 22px; border-top-right-radius: 22px;
+  padding: 18px 16px 28px; box-shadow: 0 -10px 40px rgba(0,0,0,.5); }
+.reorder-head { text-align: center; margin-bottom: 14px; }
+.reorder-head h3 { font-size: 17px; font-weight: 800; color: var(--text); }
+.reorder-head small { font-size: 12px; color: var(--muted); }
+.reorder-list { display: flex; flex-direction: column; gap: 6px;
+  margin-bottom: 14px; }
+.reorder-row { display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; background: var(--panel-2); border-radius: 12px;
+  border: 1px solid var(--line); user-select: none; touch-action: none; }
+.reorder-handle { font-size: 18px; color: var(--muted);
+  cursor: grab; }
+.reorder-name { flex: 1; font-size: 14px; font-weight: 700; color: var(--text); }
+.reorder-arrows { display: flex; gap: 4px; }
+.reorder-arrows button { width: 32px; height: 32px; border-radius: 8px;
+  background: var(--panel); border: 1px solid var(--line);
+  color: var(--text); font-size: 14px; font-weight: 800; }
+.reorder-arrows button:disabled { opacity: .3; }
+.reorder-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
 /* ─── Workout tab "To-Do" view ─────────────────────────────────────── */
 .wo-todo { display: flex; flex-direction: column; gap: 12px; padding: 0 4px; }
 .wo-todo-card { width: 100%; text-align: left; background: var(--panel);

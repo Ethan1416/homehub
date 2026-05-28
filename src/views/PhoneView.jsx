@@ -4,6 +4,7 @@ import { ymd } from '../lib/date.js'
 import { isConfigured } from '../supabaseClient.js'
 import EventModal from '../components/EventModal.jsx'
 import ChecklistSheet from '../components/ChecklistSheet.jsx'
+import FocusedChecklistSheet from '../components/FocusedChecklistSheet.jsx'
 import RoutinePicker from '../components/RoutinePicker.jsx'
 import CustomWorkoutBuilder from '../components/CustomWorkoutBuilder.jsx'
 import { useCurrentUser, setUser as setCurrentUser } from '../components/UserGate.jsx'
@@ -88,7 +89,11 @@ export default function PhoneView() {
         ))}
       </nav>
 
-      {modal?.checklist && (
+      {modal?.checklist && modal.checklist.type === 'gym' && (
+        <FocusedChecklistSheet event={modal.checklist} day={new Date(selected)} user={user}
+          onClose={() => setModal(null)} />
+      )}
+      {modal?.checklist && modal.checklist.type !== 'gym' && (
         <ChecklistSheet event={modal.checklist} day={new Date(selected)} user={user}
           onClose={() => setModal(null)}
           onEdit={() => setModal({ event: modal.checklist })}
