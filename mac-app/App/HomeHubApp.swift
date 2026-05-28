@@ -173,7 +173,12 @@ final class WebHostController: UIViewController, WKNavigationDelegate {
         super.viewDidAppear(animated)
         guard !didLoad else { return }
         didLoad = true
-        webView.load(URLRequest(url: HomeHubConfig.appURL))
+        // Cache-bust with a timestamp to defeat the PWA's service worker.
+        let bustURL = URL(string: HomeHubConfig.appURL.absoluteString
+                          + "?_v=\(Int(Date().timeIntervalSince1970))")!
+        var req = URLRequest(url: bustURL)
+        req.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        webView.load(req)
     }
 }
 

@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { supabase, isConfigured } from '../../supabaseClient.js'
 // note: supabase is used by RoutineEditor below for direct event updates
 import { exerciseCatalog, exerciseHistory, nextMilestone, milestoneIncrement, milestonesFor, currentLevel, recentVariability, muscleGroupFor } from '../../lib/workouts.js'
-import { parseEvent } from '../../lib/checklist.js'
+import { parseEvent, completion } from '../../lib/checklist.js'
+import { useProgress, useGymOverrides } from '../../lib/useData.js'
+import { occursOn, ymd, fmtTime } from '../../lib/date.js'
 import { PROFILE_BW_LB } from '../../lib/constants.js'
 
 function fmtDuration(weeks) {
@@ -260,14 +262,17 @@ function ExerciseDetail({ ex, allRows, onBack }) {
 }
 
 const SECTIONS = [
+  { k: 'todo', label: 'To-Do' },
   { k: 'exercises', label: 'Exercises' },
   { k: 'routines', label: 'Routines' }
 ]
 
-export default function WorkoutTab({ events, user = 'ethan', focusedEventId, clearFocus, navReq }) {
+export default function WorkoutTab({ events, user = 'ethan', focusedEventId, clearFocus, navReq, openChecklist, switchToTasks }) {
   const [allRows, setAllRows] = useState([])
   const [open, setOpen] = useState(null) // exercise name (normalized) when detail open
-  const [section, setSection] = useState('exercises')
+  // Default to To-Do so people who tap Workout to "do their workout"
+  // land on something actionable instead of a stats page.
+  const [section, setSection] = useState('todo')
   const [routineOpen, setRoutineOpen] = useState(null) // which weekday event id is open for editing
   const [openGroup, setOpenGroup] = useState(null)     // expanded muscle group on Exercises sub-page
   const focusedEvent = focusedEventId ? events.find((e) => e.id === focusedEventId) : null
@@ -346,6 +351,7 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
       <div className="ora-hdr">
         <div className="ph-greet">Workout</div>
         <div className="ph-stat" style={{ fontSize: 22 }}>
+          {section === 'todo' && "Today's workout"}
           {section === 'exercises' && (openGroup ? openGroup : `${list.length} exercises`)}
           {section === 'routines' && 'Weekly plan'}
         </div>
@@ -357,6 +363,12 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
             onClick={() => setSection(s.k)}>{s.label}</button>
         ))}
       </div>
+
+      {section === 'todo' && (
+        <TodayWorkout events={events} user={user}
+          openChecklist={openChecklist}
+          switchToTasks={switchToTasks} />
+      )}
 
       {section === 'exercises' && (
         <>
@@ -381,6 +393,73 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
               onBack={() => setRoutineOpen(null)} />
           : <RoutinesList events={events} onOpen={setRoutineOpen} />)}
     </>
+  )
+}
+
+// --- Today's workout card: shows today's gym task (if any) and lets the
+// user tap to open the same checklist sheet used from the Tasks tab. The
+// reason this lives on the Workout tab is that people instinctively go to
+// "Workout" to do their workout, even though the canonical home for it is
+// Tasks. This brings them there in 1 tap.
+function TodayWorkout({ events, user, openChecklist, switchToTasks }) {
+  const today = useMemo(() => new Date(), [])
+  const dayKey = ymd(today)
+  const { byEvent } = useProgress(dayKey, user)
+  const overrides = useGymOverrides(user)
+  const todayOverrideId = overrides[dayKey]
+
+  // Today's gym event(s) — respect the per-day override if present.
+  let gymEvents = events.filter((e) => e.type === 'gym' && occursOn(e, today))
+  if (todayOverrideId) {
+    const override = events.find((e) => e.id === todayOverrideId)
+    gymEvents = override ? [override] : gymEvents
+  }
+
+  if (gymEvents.length === 0) {
+    return (
+      <div className="wo-todo-empty">
+        <div className="wo-todo-empty-emoji">🛌</div>
+        <b>No workout scheduled today</b>
+        <small>Rest day — or set one from the Tasks tab.</small>
+        {switchToTasks && (
+          <button className="btn ghost" onClick={switchToTasks} style={{ marginTop: 10 }}>
+            Open Tasks
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="wo-todo">
+      {gymEvents.map((ev) => {
+        const parsed = parseEvent(ev)
+        const remote = byEvent[ev.id] || {}
+        const { done, total } = completion(parsed, remote)
+        const pct = total ? Math.round((done / total) * 100) : 0
+        const allDone = total > 0 && done === total
+        return (
+          <button key={ev.id} className={`wo-todo-card ${allDone ? 'done' : ''}`}
+            onClick={() => openChecklist && openChecklist(ev)}>
+            <div className="wo-todo-head">
+              <b>{ev.title}</b>
+              <span className="wo-todo-time">
+                {ev.all_day ? 'All day' : fmtTime(ev.starts_at)}
+              </span>
+            </div>
+            <div className="wo-todo-progress">
+              <div className="wo-todo-bar">
+                <div className="wo-todo-fill" style={{ width: pct + '%' }} />
+              </div>
+              <span className="wo-todo-count">{done}/{total}</span>
+            </div>
+            <div className="wo-todo-cta">
+              {allDone ? '✓ Complete' : done === 0 ? 'Tap to start →' : 'Tap to continue →'}
+            </div>
+          </button>
+        )
+      })}
+    </div>
   )
 }
 

@@ -815,6 +815,36 @@ button { font: inherit; cursor: pointer; border: none; }
 .cl-set-mini .cs-num { font-size: 12px; color: var(--text); font-weight: 700; }
 .cl-set-mini .cs-tick { font-size: 14px; color: var(--good); font-weight: 800; }
 
+/* ─── Workout tab "To-Do" view ─────────────────────────────────────── */
+.wo-todo { display: flex; flex-direction: column; gap: 12px; padding: 0 4px; }
+.wo-todo-card { width: 100%; text-align: left; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 16px; padding: 18px;
+  box-shadow: var(--shadow); cursor: pointer; transition: transform .1s; }
+.wo-todo-card:active { transform: scale(.985); }
+.wo-todo-card.done { background: rgba(47,179,128,.05); border-color: rgba(47,179,128,.3); }
+.wo-todo-head { display: flex; justify-content: space-between; align-items: baseline;
+  gap: 10px; margin-bottom: 12px; }
+.wo-todo-head b { font-size: 17px; font-weight: 800; color: var(--text);
+  line-height: 1.2; flex: 1; }
+.wo-todo-time { font-size: 13px; font-weight: 700; color: var(--accent);
+  white-space: nowrap; }
+.wo-todo-progress { display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px; }
+.wo-todo-bar { flex: 1; height: 8px; background: var(--panel-2);
+  border-radius: 4px; overflow: hidden; }
+.wo-todo-fill { height: 100%; background: linear-gradient(90deg, var(--accent) 0%, var(--good) 100%);
+  border-radius: 4px; transition: width .3s; }
+.wo-todo-count { font-size: 13px; font-weight: 800; color: var(--text);
+  min-width: 42px; text-align: right; }
+.wo-todo-cta { font-size: 13px; font-weight: 800; color: var(--accent);
+  letter-spacing: .3px; }
+.wo-todo-card.done .wo-todo-cta { color: var(--good); }
+.wo-todo-empty { text-align: center; padding: 40px 28px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.wo-todo-empty-emoji { font-size: 48px; line-height: 1; margin-bottom: 8px; }
+.wo-todo-empty b { font-size: 16px; color: var(--text); }
+.wo-todo-empty small { font-size: 13px; color: var(--muted); }
+
 /* ─── "Coming up" overview at top of gym checklist ─────────────────── */
 .cl-overview { margin: -4px -4px 14px; padding: 10px 4px 6px;
   background: linear-gradient(180deg, rgba(91,110,245,.06) 0%, transparent 100%);

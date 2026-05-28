@@ -14,11 +14,16 @@ import ClaudeTab from './tabs/ClaudeTab.jsx'
 import OuraTab from './tabs/OuraTab.jsx'
 import { IconTasks, IconCalendar, IconWorkout, IconClaude, IconOura } from '../components/Icons.jsx'
 
-const TABS = [
+// Users allowed to see the Claude admin tab (live Claude Code status on
+// Ethan's Mac + Justin's PC). Non-admin users never see it — safe to ship
+// in the App Store because the hidden tab has no user-facing functionality
+// and no monetization-bypass concerns.
+const ADMIN_USERS = ['ethan', 'justin']
+const ALL_TABS = [
   { k: 'tasks', Icon: IconTasks, label: 'Tasks' },
   { k: 'calendar', Icon: IconCalendar, label: 'Calendar' },
   { k: 'workout', Icon: IconWorkout, label: 'Workout' },
-  { k: 'claude', Icon: IconClaude, label: 'Claude' },
+  { k: 'claude', Icon: IconClaude, label: 'Claude', adminOnly: true },
   { k: 'oura', Icon: IconOura, label: 'Vitals' }
 ]
 
@@ -31,6 +36,8 @@ export default function PhoneView() {
   const [weekBase, setWeekBase] = useState(new Date())
   const [filter, setFilter] = useState(null)
   const [tab, setTab] = useState('tasks')
+  // Filter admin-only tabs by current user.
+  const TABS = ALL_TABS.filter((t) => !t.adminOnly || ADMIN_USERS.includes(user))
   const [workoutFocus, setWorkoutFocus] = useState(null) // event_id to filter Workout tab to
   const [workoutNav, setWorkoutNav] = useState(null)     // {ex, nonce} — open this exercise on Workout tab
   const [modal, setModal] = useState(null)
@@ -59,7 +66,9 @@ export default function PhoneView() {
           <WorkoutTab events={events} user={user}
             focusedEventId={workoutFocus}
             clearFocus={() => setWorkoutFocus(null)}
-            navReq={workoutNav} />
+            navReq={workoutNav}
+            openChecklist={(e) => setModal({ checklist: e })}
+            switchToTasks={() => setTab('tasks')} />
         )}
         {tab === 'claude' && <ClaudeTab />}
         {tab === 'oura' && <OuraTab user={user} />}
