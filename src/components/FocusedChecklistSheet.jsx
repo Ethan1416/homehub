@@ -46,8 +46,11 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
 
 
   const [v, setV] = useState({})
-  useEffect(() => { setV({}) }, [logDate, event.id])
+  const [extra, setExtra] = useState({})   // sets added beyond the routine (key → count)
+  useEffect(() => { setV({}); setExtra({}) }, [logDate, event.id])
   const cell = (k) => v[k] || remote[k] || {}
+  // total sets to render for a group = routine sets + any added on the fly
+  const setsOf = (g) => g.sets + (extra[g.key] || 0)
 
   const put = (key, patch) => {
     setV((s) => ({ ...s, [key]: { ...(s[key] || remote[key] || {}), ...patch } }))
@@ -77,7 +80,7 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
   const merged = { ...remote, ...v }
   const moved = (r) => !!(r && (r.done || r.skipped))
   function setStates(g) {
-    return Array.from({ length: g.sets }, (_, s) => cellState(cell(`${g.key}#${s}`)))
+    return Array.from({ length: setsOf(g) }, (_, s) => cellState(cell(`${g.key}#${s}`)))
   }
   const firstOpenIdx = groups.findIndex((g) => setStates(g).some((s) => s === 'open'))
   const [activeIdx, setActiveIdx] = useState(0)
@@ -130,7 +133,8 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
   }
 
   const states = setStates(activeGroup)
-  const activeSetIdx = Math.min(setIdx, Math.max(0, activeGroup.sets - 1))
+  const nSets = setsOf(activeGroup)
+  const activeSetIdx = Math.min(setIdx, Math.max(0, nSets - 1))
   const setKey = `${activeGroup.key}#${activeSetIdx}`
   const setData = cell(setKey)
   const allSetsMoved = states.every((s) => s !== 'open')
@@ -145,14 +149,15 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
   const prSide = pr ? perSide(pr.weight, bar) : null
   const history = catEntry ? exerciseHistory(catEntry, allRows).series : []
 
-  // Move to the next un-logged set in this exercise, else the next exercise.
+  // Move to the next un-logged set; if every set is already done, ADD a new
+  // one (4 → 5) so you can always keep going. Exercise changes happen via the
+  // ‹ › arrows / the "Done with exercise" button, never from here.
   function advance() {
-    let next = -1
-    for (let s = 0; s < activeGroup.sets; s++) {
-      if (s !== activeSetIdx && cellState(cell(`${activeGroup.key}#${s}`)) === 'open') { next = s; break }
+    for (let s = 0; s < nSets; s++) {
+      if (s !== activeSetIdx && cellState(cell(`${activeGroup.key}#${s}`)) === 'open') { setSetIdx(s); return }
     }
-    if (next >= 0) setSetIdx(next)
-    else if (activeIdx < groups.length - 1) setActiveIdx(activeIdx + 1)
+    setExtra((m) => ({ ...m, [activeGroup.key]: (m[activeGroup.key] || 0) + 1 }))
+    setSetIdx(nSets)   // the brand-new last set
   }
   // "Rest" = I finished this set, keep going: log it, start the rest clock, and
   // advance to the next set. If a rest was already running it belonged to this
@@ -180,39 +185,20 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
   const recRest = defaultRestFor(activeGroup.label)
   const restColor = restElapsed < recRest ? 'counting'
     : restElapsed < recRest * 1.5 ? 'good' : 'over'
-  function skipSet() {
-    put(setKey, { skipped: true, done: false })
-  }
-  function skipExercise() {
-    for (let s = 0; s < activeGroup.sets; s++) {
-      const k = `${activeGroup.key}#${s}`
-      const c = cell(k)
-      if (!c.done && !c.skipped) put(k, { skipped: true })
-    }
-    if (activeIdx < groups.length - 1) setActiveIdx(activeIdx + 1)
-  }
-  function addSet() {
-    put(`${activeGroup.key}#${activeGroup.sets}`, { done: false })
-    // Note: the new set won't show up immediately because parsed.groups is
-    // derived from event.notes. To support inline-added sets, FocusedSheet
-    // would need to also count progress rows with #N > parsed sets. We rely
-    // on the existing "Add set" pattern from ChecklistSheet for now.
-  }
 
   const next = groups[activeIdx + 1]
   const nextOpen = next ? setStates(next).filter((s) => s === 'open').length : 0
+  const dayTitle = event.title.replace(/^[🏋️\s]+/, '').replace(/^Gym\s+[—-]\s+/, '')
 
   return (
     <div className="scrim" onClick={onClose}>
       <div className="sheet focused" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
+        {/* Header — the routine name reads as the title (tap to change routine) */}
         <div className="fc-head">
           <button className="fc-back" onClick={onClose}>✕</button>
-          <button className="fc-title fc-title-btn"
-            onClick={() => openGymPicker && openGymPicker()}
+          <button className="fc-day-title" onClick={() => openGymPicker && openGymPicker()}
             title="Change routine">
-            <small>{event.title.replace(/^[🏋️\s]+/, '').replace(/^Gym\s+[—-]\s+/, '')} ⇄</small>
-            <b>{activeIdx + 1} <span>of</span> {groups.length}</b>
+            {dayTitle} <span className="fc-day-swap">⇄</span>
           </button>
           <button className="fc-back" onClick={() => setReorderOpen(true)} title="Reorder">≡</button>
         </div>
@@ -222,36 +208,40 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
           <div className="fc-bar-fill" style={{ width: total ? `${(done / total) * 100}%` : '0%' }} />
         </div>
 
-        {/* Exercise nav (prev / current / next chevrons) */}
-        <div className="fc-nav">
+        {/* Exercise nav — arrows flank the exercise sub-title */}
+        <div className="fc-exnav">
           <button className="fc-nav-btn" disabled={activeIdx === 0}
             onClick={() => setActiveIdx(Math.max(0, activeIdx - 1))}>‹</button>
-          <div className="fc-nav-chips">
-            {groups.map((g, i) => {
-              const s = setStates(g)
-              const ad = s.length > 0 && s.every((x) => x === 'done')
-              const as = s.length > 0 && s.every((x) => x === 'skipped')
-              return (
-                <button key={g.key}
-                  className={`fc-dot ${i === activeIdx ? 'on' : ''} ${ad ? 'done' : ''} ${as ? 'skipped' : ''}`}
-                  onClick={() => setActiveIdx(i)}
-                  title={stripNum(g.label)} />
-              )
-            })}
+          <div className="fc-exnav-mid">
+            <h2 className="fc-ex-name">{stripNum(activeGroup.label)}</h2>
+            <div className="fc-ex-sub">
+              Exercise {activeIdx + 1} of {groups.length} · Set {activeSetIdx + 1} of {nSets}{allSetsMoved ? ' · all done' : ''}
+            </div>
           </div>
           <button className="fc-nav-btn" disabled={activeIdx === groups.length - 1}
             onClick={() => setActiveIdx(Math.min(groups.length - 1, activeIdx + 1))}>›</button>
         </div>
 
+        {/* Per-exercise progression dots (tappable; no longer between the arrows) */}
+        <div className="fc-dots">
+          {groups.map((g, i) => {
+            const s = setStates(g)
+            const ad = s.length > 0 && s.every((x) => x === 'done')
+            const as = s.length > 0 && s.every((x) => x === 'skipped')
+            return (
+              <button key={g.key}
+                className={`fc-dot ${i === activeIdx ? 'on' : ''} ${ad ? 'done' : ''} ${as ? 'skipped' : ''}`}
+                onClick={() => setActiveIdx(i)} title={stripNum(g.label)} />
+            )
+          })}
+        </div>
+
         {/* The one exercise */}
         <div className="fc-ex">
-          <h2 className="fc-ex-name">{stripNum(activeGroup.label)}</h2>
-          <div className="fc-ex-sub">Set {activeSetIdx + 1} of {activeGroup.sets}{allSetsMoved ? ' · all done' : ''}</div>
-
           {/* Per-set selector — tap any set (incl. a finished one) to edit it */}
-          {activeGroup.sets > 1 && (
+          {nSets > 1 && (
             <div className="fc-setsel">
-              {Array.from({ length: activeGroup.sets }, (_, i) => {
+              {Array.from({ length: nSets }, (_, i) => {
                 const st = cellState(cell(`${activeGroup.key}#${i}`))
                 return (
                   <button key={i}
@@ -335,12 +325,6 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
               : '🏁 Finish workout'}
           </button>
 
-          {/* Secondary actions */}
-          <div className="fc-actions">
-            <button onClick={skipSet}>↷ Skip set</button>
-            <button onClick={skipExercise}>↷↷ Skip rest</button>
-            <button onClick={addSet}>+ Add set</button>
-          </div>
           {history.length > 0 && (
             <div className="fc-hist">
               <div className="fc-hist-h">History · {stripNum(activeGroup.label)}</div>

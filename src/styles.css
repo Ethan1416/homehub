@@ -1367,3 +1367,19 @@ button { font: inherit; cursor: pointer; border: none; }
 .fc-tail .fc-rest-good { background: #2fb380; color: #fff; border-color: #2fb380; }
 .fc-tail .fc-rest-over { background: #e5575d; color: #fff; border-color: #e5575d; }
 .fc-rest-den { opacity: .82; font-weight: 700; }
+
+/* Gym sheet header/nav redo: bold day title, exercise sub-title between arrows */
+.fc-day-title { flex: 1; text-align: center; background: transparent; border: none;
+  font-size: 18px; font-weight: 900; letter-spacing: -.2px; color: var(--text);
+  padding: 4px 8px; line-height: 1.15; }
+.fc-day-title:active { background: var(--panel-2); border-radius: 10px; }
+.fc-day-swap { font-size: 13px; font-weight: 700; color: var(--accent); }
+
+.fc-exnav { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.fc-exnav-mid { flex: 1; text-align: center; }
+.fc-exnav .fc-ex-name { font-size: 22px; font-weight: 800; letter-spacing: -.3px;
+  line-height: 1.1; margin: 0; }
+.fc-exnav .fc-ex-sub { margin-top: 2px; }
+
+.fc-dots { display: flex; gap: 5px; align-items: center; justify-content: center;
+  flex-wrap: wrap; margin-top: 8px; }
