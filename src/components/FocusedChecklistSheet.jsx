@@ -203,6 +203,21 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
           <button className="fc-back" onClick={() => setReorderOpen(true)} title="Reorder">≡</button>
         </div>
 
+        {/* Per-exercise progression dots, right under the routine title so you
+            can see where you are in the routine (tappable to jump). */}
+        <div className="fc-dots">
+          {groups.map((g, i) => {
+            const s = setStates(g)
+            const ad = s.length > 0 && s.every((x) => x === 'done')
+            const as = s.length > 0 && s.every((x) => x === 'skipped')
+            return (
+              <button key={g.key}
+                className={`fc-dot ${i === activeIdx ? 'on' : ''} ${ad ? 'done' : ''} ${as ? 'skipped' : ''}`}
+                onClick={() => setActiveIdx(i)} title={stripNum(g.label)} />
+            )
+          })}
+        </div>
+
         {/* Mini progress bar */}
         <div className="fc-bar">
           <div className="fc-bar-fill" style={{ width: total ? `${(done / total) * 100}%` : '0%' }} />
@@ -222,21 +237,7 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
             onClick={() => setActiveIdx(Math.min(groups.length - 1, activeIdx + 1))}>›</button>
         </div>
 
-        {/* Per-exercise progression dots (tappable; no longer between the arrows) */}
-        <div className="fc-dots">
-          {groups.map((g, i) => {
-            const s = setStates(g)
-            const ad = s.length > 0 && s.every((x) => x === 'done')
-            const as = s.length > 0 && s.every((x) => x === 'skipped')
-            return (
-              <button key={g.key}
-                className={`fc-dot ${i === activeIdx ? 'on' : ''} ${ad ? 'done' : ''} ${as ? 'skipped' : ''}`}
-                onClick={() => setActiveIdx(i)} title={stripNum(g.label)} />
-            )
-          })}
-        </div>
-
-        {/* The one exercise */}
+        {/* The one exercise — set boxes sit directly under the exercise name */}
         <div className="fc-ex">
           {/* Per-set selector — tap any set (incl. a finished one) to edit it */}
           {nSets > 1 && (
