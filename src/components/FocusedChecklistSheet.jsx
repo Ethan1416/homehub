@@ -203,24 +203,12 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
           <button className="fc-back" onClick={() => setReorderOpen(true)} title="Reorder">≡</button>
         </div>
 
-        {/* Per-exercise progression dots, right under the routine title so you
-            can see where you are in the routine (tappable to jump). */}
-        <div className="fc-dots">
-          {groups.map((g, i) => {
-            const s = setStates(g)
-            const ad = s.length > 0 && s.every((x) => x === 'done')
-            const as = s.length > 0 && s.every((x) => x === 'skipped')
-            return (
-              <button key={g.key}
-                className={`fc-dot ${i === activeIdx ? 'on' : ''} ${ad ? 'done' : ''} ${as ? 'skipped' : ''}`}
-                onClick={() => setActiveIdx(i)} title={stripNum(g.label)} />
-            )
-          })}
-        </div>
-
-        {/* Mini progress bar */}
-        <div className="fc-bar">
-          <div className="fc-bar-fill" style={{ width: total ? `${(done / total) * 100}%` : '0%' }} />
+        {/* Routine progress bar — sets completed across the whole workout */}
+        <div className="fc-progress">
+          <div className="fc-bar">
+            <div className="fc-bar-fill" style={{ width: total ? `${(done / total) * 100}%` : '0%' }} />
+          </div>
+          <span className="fc-progress-pct">{total ? Math.round((done / total) * 100) : 0}%</span>
         </div>
 
         {/* Exercise nav — arrows flank the exercise sub-title */}
