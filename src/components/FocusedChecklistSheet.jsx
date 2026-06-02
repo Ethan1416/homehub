@@ -314,7 +314,7 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
               : '🏁 Finish workout'}
           </button>
 
-          <MiniTrendChart series={history} />
+          <MiniTrendChart series={history} bar={bar} />
 
           {history.length > 0 && (
             <div className="fc-hist">
@@ -365,47 +365,71 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
   )
 }
 
-// Per-day line chart: weight achieved + total volume over time. Each line is
-// scaled to its own range (weight ~lbs, volume ~lb·reps) so both read clearly.
-function MiniTrendChart({ series }) {
+// Per-day line chart: weight achieved + total volume over time, each scaled to
+// its own range. Axes are labeled (weight left, volume right, dates bottom) and
+// tapping a point shows that day's exact values.
+function MiniTrendChart({ series, bar }) {
+  const [sel, setSel] = useState(null)
   if (!series || series.length === 0) return null
   if (series.length < 2) {
     return <div className="fc-chart fc-chart-empty">One session logged — the trend chart appears after your next.</div>
   }
-  const W = 320, H = 132, PL = 10, PR = 10, PT = 16, PB = 22
+  const W = 320, H = 144, PL = 30, PR = 36, PT = 16, PB = 26
   const tOf = (s) => parseYmd(s.date).getTime()
   const ts = series.map(tOf)
   const minX = Math.min(...ts), maxX = Math.max(...ts)
   const x = (t) => PL + ((t - minX) / Math.max(maxX - minX, 1)) * (W - PL - PR)
-  const mkY = (vals) => {
-    const lo = Math.min(...vals), hi = Math.max(...vals), span = Math.max(hi - lo, 1)
-    return (v) => H - PB - ((v - lo) / span) * (H - PT - PB)
-  }
-  const yW = mkY(series.map((s) => s.maxWeight))
-  const yV = mkY(series.map((s) => s.volume))
+  const wv = series.map((s) => s.maxWeight), vv = series.map((s) => s.volume)
+  const wlo = Math.min(...wv), whi = Math.max(...wv), vlo = Math.min(...vv), vhi = Math.max(...vv)
+  const yW = (v) => H - PB - ((v - wlo) / Math.max(whi - wlo, 1)) * (H - PT - PB)
+  const yV = (v) => H - PB - ((v - vlo) / Math.max(vhi - vlo, 1)) * (H - PT - PB)
   const poly = (fy, key) => series.map((s) => `${x(tOf(s)).toFixed(1)},${fy(s[key]).toFixed(1)}`).join(' ')
   const fmtD = (d) => parseYmd(d).toLocaleDateString([], { month: 'short', day: 'numeric' })
+  const kfmt = (n) => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(Math.round(n))
   const WCOL = '#5b6ef5', VCOL = '#e0883a'
+  const selP = sel != null ? series[sel] : null
+  const popLeft = selP ? Math.max(16, Math.min(84, (x(tOf(selP)) / W) * 100)) : 0
   return (
     <div className="fc-chart">
       <div className="fc-chart-legend">
-        <span style={{ color: WCOL }}>● Weight</span>
-        <span style={{ color: VCOL }}>● Volume</span>
+        <span style={{ color: WCOL }}>● Weight (lb)</span>
+        <span style={{ color: VCOL }}>● Volume (lb·reps)</span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="fc-chart-svg" preserveAspectRatio="xMidYMid meet">
-        <polyline points={poly(yW, 'maxWeight')} fill="none" stroke={WCOL}
-          strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        <polyline points={poly(yV, 'volume')} fill="none" stroke={VCOL}
-          strokeWidth="2.5" strokeDasharray="5 4" strokeLinecap="round" strokeLinejoin="round" />
-        {series.map((s, i) => (
-          <g key={i}>
-            <circle cx={x(tOf(s))} cy={yW(s.maxWeight)} r="3.2" fill={WCOL} />
-            <circle cx={x(tOf(s))} cy={yV(s.volume)} r="3.2" fill={VCOL} />
-          </g>
-        ))}
-        <text x={PL} y={H - 6} fontSize="9.5" fill="#8b90a3">{fmtD(series[0].date)}</text>
-        <text x={W - PR} y={H - 6} fontSize="9.5" fill="#8b90a3" textAnchor="end">{fmtD(series[series.length - 1].date)}</text>
-      </svg>
+      <div className="fc-chart-wrap">
+        <svg viewBox={`0 0 ${W} ${H}`} className="fc-chart-svg" preserveAspectRatio="xMidYMid meet">
+          <line x1={PL} y1={H - PB} x2={W - PR} y2={H - PB} stroke="#e7e9f1" strokeWidth="1" />
+          {/* weight scale (left) */}
+          <text x={2} y={PT + 3} fontSize="9" fill={WCOL}>{whi}</text>
+          <text x={2} y={H - PB} fontSize="9" fill={WCOL}>{wlo}</text>
+          {/* volume scale (right) */}
+          <text x={W - 2} y={PT + 3} fontSize="9" fill={VCOL} textAnchor="end">{kfmt(vhi)}</text>
+          <text x={W - 2} y={H - PB} fontSize="9" fill={VCOL} textAnchor="end">{kfmt(vlo)}</text>
+          <polyline points={poly(yW, 'maxWeight')} fill="none" stroke={WCOL}
+            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points={poly(yV, 'volume')} fill="none" stroke={VCOL}
+            strokeWidth="2.5" strokeDasharray="5 4" strokeLinecap="round" strokeLinejoin="round" />
+          {series.map((s, i) => (
+            <g key={i} onClick={() => setSel(sel === i ? null : i)} style={{ cursor: 'pointer' }}>
+              <circle cx={x(tOf(s))} cy={(yW(s.maxWeight) + yV(s.volume)) / 2} r="13" fill="transparent" />
+              <circle cx={x(tOf(s))} cy={yW(s.maxWeight)} r={sel === i ? 5 : 3.4} fill={WCOL}
+                stroke="#fff" strokeWidth={sel === i ? 1.5 : 0} />
+              <circle cx={x(tOf(s))} cy={yV(s.volume)} r={sel === i ? 5 : 3.4} fill={VCOL}
+                stroke="#fff" strokeWidth={sel === i ? 1.5 : 0} />
+            </g>
+          ))}
+          <text x={PL} y={H - 8} fontSize="9.5" fill="#8b90a3">{fmtD(series[0].date)}</text>
+          <text x={W - PR} y={H - 8} fontSize="9.5" fill="#8b90a3" textAnchor="end">{fmtD(series[series.length - 1].date)}</text>
+        </svg>
+        {selP && (
+          <div className="fc-chart-pop" style={{ left: `${popLeft}%` }}>
+            <b>{fmtD(selP.date)}</b>
+            <span>{selP.maxWeight} lb{perSide(selP.maxWeight, bar) != null ? ` (${perSide(selP.maxWeight, bar)}/side)` : ''}</span>
+            <span>vol {Math.round(selP.volume).toLocaleString()}</span>
+            <span>{selP.setCount} set{selP.setCount === 1 ? '' : 's'} · top {selP.maxReps} reps</span>
+          </div>
+        )}
+      </div>
+      <div className="fc-chart-hint">{selP ? 'tap the point again to dismiss' : 'tap a point for exact values'}</div>
     </div>
   )
 }

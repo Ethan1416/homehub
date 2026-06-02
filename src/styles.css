@@ -871,9 +871,9 @@ button { font: inherit; cursor: pointer; border: none; }
 .fc-dot.done { background: var(--good); border-color: var(--good); }
 .fc-dot.skipped { background: var(--muted); border-color: var(--muted); }
 
-.fc-ex { flex: 1; padding: 0 16px;
+.fc-ex { flex: 1; padding: 8px 16px 0;
   display: flex; flex-direction: column; gap: 14px;
-  min-height: 0; justify-content: center; }
+  min-height: 0; justify-content: flex-start; overflow-y: auto; }
 .fc-ex-name { font-size: 30px; font-weight: 900; letter-spacing: -.5px;
   line-height: 1.05; text-align: center; color: var(--text); }
 .fc-ex-sub { text-align: center; font-size: 13px; color: var(--muted);
@@ -1306,7 +1306,7 @@ button { font: inherit; cursor: pointer; border: none; }
   background: rgba(91,110,245,.10); }
 
 /* per-set selector (go back & edit any set) */
-.fc-setsel { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 2px; }
+.fc-setsel { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 4px; }
 .fc-sset { min-width: 38px; padding: 7px 9px; border-radius: 10px; font-weight: 800;
   font-size: 13px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); }
 .fc-sset.on { border-color: var(--accent); color: var(--accent); background: rgba(91,110,245,.10); }
@@ -1392,3 +1392,12 @@ button { font: inherit; cursor: pointer; border: none; }
 .fc-chart-legend { display: flex; gap: 14px; font-size: 11px; font-weight: 800; margin-bottom: 4px; }
 .fc-chart-svg { width: 100%; height: auto; display: block; }
 .fc-chart-empty { color: var(--muted); font-size: 12px; font-weight: 600; text-align: center; }
+
+/* trend chart: clickable points + value popup */
+.fc-chart-wrap { position: relative; }
+.fc-chart-pop { position: absolute; top: -4px; transform: translateX(-50%);
+  background: #1d2230; color: #fff; border-radius: 9px; padding: 7px 10px;
+  font-size: 11px; line-height: 1.35; display: flex; flex-direction: column; gap: 1px;
+  white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,.28); z-index: 3; pointer-events: none; }
+.fc-chart-pop b { font-size: 11.5px; font-weight: 800; }
+.fc-chart-hint { font-size: 10px; color: var(--muted); text-align: center; margin-top: 5px; }
