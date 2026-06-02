@@ -1383,3 +1383,10 @@ button { font: inherit; cursor: pointer; border: none; }
 
 .fc-dots { display: flex; gap: 5px; align-items: center; justify-content: center;
   flex-wrap: wrap; margin-top: 8px; }
+
+/* per-exercise weight + volume trend chart (gym sheet) */
+.fc-chart { margin-top: 14px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 14px; padding: 10px 12px; }
+.fc-chart-legend { display: flex; gap: 14px; font-size: 11px; font-weight: 800; margin-bottom: 4px; }
+.fc-chart-svg { width: 100%; height: auto; display: block; }
+.fc-chart-empty { color: var(--muted); font-size: 12px; font-weight: 600; text-align: center; }

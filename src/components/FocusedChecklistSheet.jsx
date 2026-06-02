@@ -326,6 +326,8 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
               : '🏁 Finish workout'}
           </button>
 
+          <MiniTrendChart series={history} />
+
           {history.length > 0 && (
             <div className="fc-hist">
               <div className="fc-hist-h">History · {stripNum(activeGroup.label)}</div>
@@ -371,6 +373,51 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
             setReorderOpen(false)
           }} />
       )}
+    </div>
+  )
+}
+
+// Per-day line chart: weight achieved + total volume over time. Each line is
+// scaled to its own range (weight ~lbs, volume ~lb·reps) so both read clearly.
+function MiniTrendChart({ series }) {
+  if (!series || series.length === 0) return null
+  if (series.length < 2) {
+    return <div className="fc-chart fc-chart-empty">One session logged — the trend chart appears after your next.</div>
+  }
+  const W = 320, H = 132, PL = 10, PR = 10, PT = 16, PB = 22
+  const tOf = (s) => parseYmd(s.date).getTime()
+  const ts = series.map(tOf)
+  const minX = Math.min(...ts), maxX = Math.max(...ts)
+  const x = (t) => PL + ((t - minX) / Math.max(maxX - minX, 1)) * (W - PL - PR)
+  const mkY = (vals) => {
+    const lo = Math.min(...vals), hi = Math.max(...vals), span = Math.max(hi - lo, 1)
+    return (v) => H - PB - ((v - lo) / span) * (H - PT - PB)
+  }
+  const yW = mkY(series.map((s) => s.maxWeight))
+  const yV = mkY(series.map((s) => s.volume))
+  const poly = (fy, key) => series.map((s) => `${x(tOf(s)).toFixed(1)},${fy(s[key]).toFixed(1)}`).join(' ')
+  const fmtD = (d) => parseYmd(d).toLocaleDateString([], { month: 'short', day: 'numeric' })
+  const WCOL = '#5b6ef5', VCOL = '#e0883a'
+  return (
+    <div className="fc-chart">
+      <div className="fc-chart-legend">
+        <span style={{ color: WCOL }}>● Weight</span>
+        <span style={{ color: VCOL }}>● Volume</span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="fc-chart-svg" preserveAspectRatio="xMidYMid meet">
+        <polyline points={poly(yW, 'maxWeight')} fill="none" stroke={WCOL}
+          strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <polyline points={poly(yV, 'volume')} fill="none" stroke={VCOL}
+          strokeWidth="2.5" strokeDasharray="5 4" strokeLinecap="round" strokeLinejoin="round" />
+        {series.map((s, i) => (
+          <g key={i}>
+            <circle cx={x(tOf(s))} cy={yW(s.maxWeight)} r="3.2" fill={WCOL} />
+            <circle cx={x(tOf(s))} cy={yV(s.volume)} r="3.2" fill={VCOL} />
+          </g>
+        ))}
+        <text x={PL} y={H - 6} fontSize="9.5" fill="#8b90a3">{fmtD(series[0].date)}</text>
+        <text x={W - PR} y={H - 6} fontSize="9.5" fill="#8b90a3" textAnchor="end">{fmtD(series[series.length - 1].date)}</text>
+      </svg>
     </div>
   )
 }
