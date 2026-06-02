@@ -242,6 +242,19 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
         <div className="cl-body" ref={bodyRef}>
           {parsed.info.map((t, i) => <div className="cl-info" key={i}>{t}</div>)}
 
+          {/* Meals: swap front-and-center so logging a different meal is one tap. */}
+          {parsed.kind === 'meal' && (
+            <div className="cl-swap">
+              <div className="cl-swap-h">🍽️ Ate something different?</div>
+              <textarea className="cl-swap-ta" rows={2}
+                placeholder="Log what you actually ate — e.g. Cobb salad + extra chicken…"
+                value={sub.note || ''}
+                onChange={(e) => setV((s) => ({ ...s, __sub__: { ...sub, note: e.target.value } }))}
+                onBlur={(e) => put('__sub__', { note: e.target.value })} />
+              <div className="cl-swap-hint">Logged as today's swap — the planned items below stay as reference.</div>
+            </div>
+          )}
+
           {/* "Coming up" overview — only for gym workouts with 3+ exercises.
               Each chip shows the exercise + state. Tap to scroll to it. */}
           {parsed.kind === 'gym' && parsed.groups.length >= 3 && (
@@ -513,15 +526,6 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
             </div>
           )}
 
-          {parsed.kind === 'meal' && (
-            <div className="fld" style={{ marginTop: 14 }}>
-              <label>Substitution / notes</label>
-              <textarea placeholder="Had something different? Note it here…"
-                value={sub.note || ''}
-                onChange={(e) => setV((s) => ({ ...s, __sub__: { ...sub, note: e.target.value } }))}
-                onBlur={(e) => put('__sub__', { note: e.target.value })} />
-            </div>
-          )}
         </div>
 
         <div className="sheet-actions">

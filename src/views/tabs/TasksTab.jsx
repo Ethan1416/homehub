@@ -85,6 +85,35 @@ export default function TasksTab({
   const shown = filter ? withStatus.filter((x) => x.status === filter) : withStatus
   const week = weekOf(weekBase)
   const remaining = counts.todo + counts.progress
+  // When collapsed, keep the next actionable task in view (fall back to first).
+  const nextTask = shown.find((x) => x.status === 'todo' || x.status === 'progress') || shown[0]
+
+  const renderRow = (x, i) => {
+    const { e, done, total, pct, status, off } = x
+    const p = PASTELS[i % PASTELS.length]
+    const desc = (e.notes || '').split('\n').map((s) => s.trim()).filter(Boolean)[0] || ''
+    return (
+      <div className={`tl-row ${off ? 'rest' : ''}`} key={e.id}>
+        <span className="tl-dot" style={{ borderColor: off ? '#9aa0b5' : p.bar }} />
+        <button className="task" style={{ background: off ? '#f1f2f6' : p.bg }}
+          onClick={() => openChecklist(e)}>
+          <div className="task-top">
+            <b>{e.title}</b>
+            <span className="task-time" style={{ color: off ? '#9aa0b5' : p.bar }}>
+              {off ? '🛌 Rest' : e.all_day ? 'All day' : fmtTime(e.starts_at)}
+            </span>
+          </div>
+          {desc && <p className="task-desc">{desc}</p>}
+          {!off && total > 0 && (
+            <div className="task-prog">
+              <div className="bar"><i style={{ width: `${pct}%`, background: p.bar }} /></div>
+              <span style={{ color: p.bar }}>{status === 'done' ? '✓ Done' : `${done}/${total}`}</span>
+            </div>
+          )}
+        </button>
+      </div>
+    )
+  }
 
   const machineDots = Object.entries(MACHINES).map(([mk, m]) => {
     const s = statuses.find((x) => x.machine === mk)
@@ -166,48 +195,26 @@ export default function TasksTab({
         </div>
       )}
 
-      {collapsed ? (
-        <button className="tl-collapsed" onClick={() => setCollapsed(false)}>
-          {counts.done}/{withStatus.length} done · {remaining} left · tap to expand
+      {!collapsed && !wholeOff && !withStatus.some((x) => x.e.type === 'gym') && (
+        <button className="rest-add" onClick={() => openGymPicker(selected)}>
+          <span>💪 Rest day —</span>
+          <b>Add a gym session?</b>
         </button>
-      ) : (
-        <>
-          {!wholeOff && !withStatus.some((x) => x.e.type === 'gym') && (
-            <button className="rest-add" onClick={() => openGymPicker(selected)}>
-              <span>💪 Rest day —</span>
-              <b>Add a gym session?</b>
-            </button>
-          )}
+      )}
 
-          <div className="timeline">
-            {shown.length === 0 && <div className="empty">Nothing here 🎉</div>}
-            {shown.map(({ e, done, total, pct, status, summary, off }, i) => {
-              const p = PASTELS[i % PASTELS.length]
-              const desc = (e.notes || '').split('\n').map((s) => s.trim()).filter(Boolean)[0] || ''
-              return (
-                <div className={`tl-row ${off ? 'rest' : ''}`} key={e.id}>
-                  <span className="tl-dot" style={{ borderColor: off ? '#9aa0b5' : p.bar }} />
-                  <button className="task" style={{ background: off ? '#f1f2f6' : p.bg }}
-                    onClick={() => openChecklist(e)}>
-                    <div className="task-top">
-                      <b>{e.title}</b>
-                      <span className="task-time" style={{ color: off ? '#9aa0b5' : p.bar }}>
-                        {off ? '🛌 Rest' : e.all_day ? 'All day' : fmtTime(e.starts_at)}
-                      </span>
-                    </div>
-                    {desc && <p className="task-desc">{desc}</p>}
-                    {!off && total > 0 && (
-                      <div className="task-prog">
-                        <div className="bar"><i style={{ width: `${pct}%`, background: p.bar }} /></div>
-                        <span style={{ color: p.bar }}>{status === 'done' ? '✓ Done' : `${done}/${total}`}</span>
-                      </div>
-                    )}
-                  </button>
-                </div>
-              )
-            })}
-          </div>
-        </>
+      <div className="timeline">
+        {shown.length === 0 && <div className="empty">Nothing here 🎉</div>}
+        {collapsed
+          ? (nextTask ? renderRow(nextTask, shown.indexOf(nextTask)) : null)
+          : shown.map((x, i) => renderRow(x, i))}
+      </div>
+
+      {shown.length > 1 && (
+        <button className="tl-expand" onClick={() => setCollapsed((c) => !c)}>
+          {collapsed
+            ? `▾  Show ${shown.length - 1} more task${shown.length - 1 === 1 ? '' : 's'}`
+            : '▴  Collapse tasks'}
+        </button>
       )}
 
       {/* Quick actions — rest controls live here, not buried inside an exercise */}

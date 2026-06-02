@@ -91,6 +91,26 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
   const activeGroup = groups[activeIdx]
   const { done, total } = completion(parsed, merged)
 
+  // ── Per-set selection: lets the user go back to an earlier set and edit it.
+  // Null = auto (first open set). Reset whenever the exercise or day changes.
+  const [setSel, setSetSel] = useState(null)
+  useEffect(() => { setSetSel(null) }, [activeIdx, event.id, logDate])
+
+  // ── Rest timer. Auto-starts after logging a set (and can be started by hand);
+  // when stopped — or when the next set is logged — the elapsed seconds are
+  // saved on the upcoming set as rest_seconds ("rest taken before this set").
+  const [restStart, setRestStart] = useState(null)
+  const [nowTs, setNowTs] = useState(0)
+  useEffect(() => {
+    if (restStart == null) return
+    setNowTs(Date.now())
+    const t = setInterval(() => setNowTs(Date.now()), 500)
+    return () => clearInterval(t)
+  }, [restStart])
+  useEffect(() => { setRestStart(null) }, [event.id, logDate, activeIdx])
+  const restElapsed = restStart != null ? Math.max(0, Math.round((nowTs - restStart) / 1000)) : 0
+  const mmss = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+
   // ── Reorder modal state
   const [reorderOpen, setReorderOpen] = useState(false)
 
@@ -101,12 +121,13 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
     return null
   }
 
-  // ── Active set: first open in this exercise (or the highest one if all done)
+  // ── Active set: the user's manual pick, else first open (or last if all done)
   const states = setStates(activeGroup)
-  const activeSetIdx = (() => {
+  const computedSetIdx = (() => {
     const i = states.findIndex((s) => s === 'open')
     return i >= 0 ? i : Math.max(0, activeGroup.sets - 1)
   })()
+  const activeSetIdx = setSel != null && setSel < activeGroup.sets ? setSel : computedSetIdx
   const setKey = `${activeGroup.key}#${activeSetIdx}`
   const setData = cell(setKey)
   const allSetsMoved = states.every((s) => s !== 'open')
@@ -120,7 +141,11 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
   const history = catEntry ? exerciseHistory(catEntry, allRows).series : []
 
   function logSet() {
+    // A running timer was timing the rest taken BEFORE this set — save it here.
+    if (restStart != null) put(setKey, { rest_seconds: Math.round((Date.now() - restStart) / 1000) })
     put(setKey, { done: true, skipped: false })
+    setSetSel(null)            // recompute to the next open set
+    setRestStart(Date.now())   // start timing rest before the next set
     // Auto-advance to next exercise when all sets done.
     setTimeout(() => {
       const newStates = states.map((s, i) => i === activeSetIdx ? 'done' : s)
@@ -128,6 +153,11 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
         setActiveIdx((i) => Math.min(i + 1, groups.length - 1))
       }
     }, 100)
+  }
+  function startRest() { setRestStart(Date.now()) }
+  function stopRest(log) {
+    if (log && restStart != null) put(setKey, { rest_seconds: Math.round((Date.now() - restStart) / 1000) })
+    setRestStart(null)
   }
   function skipSet() {
     put(setKey, { skipped: true, done: false })
@@ -196,6 +226,22 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
         <div className="fc-ex">
           <h2 className="fc-ex-name">{stripNum(activeGroup.label)}</h2>
           <div className="fc-ex-sub">Set {activeSetIdx + 1} of {activeGroup.sets}{allSetsMoved ? ' · all done' : ''}</div>
+
+          {/* Per-set selector — tap any set (incl. a finished one) to edit it */}
+          {activeGroup.sets > 1 && (
+            <div className="fc-setsel">
+              {Array.from({ length: activeGroup.sets }, (_, i) => {
+                const st = cellState(cell(`${activeGroup.key}#${i}`))
+                return (
+                  <button key={i}
+                    className={`fc-sset ${i === activeSetIdx ? 'on' : ''} fc-sset-${st}`}
+                    onClick={() => setSetSel(i)}>
+                    {i + 1}{st === 'done' ? '✓' : st === 'skipped' ? '↷' : ''}
+                  </button>
+                )
+              })}
+            </div>
+          )}
           {pr ? (
             <div className="fc-pr" title={`Best ever at ${prTarget}+ reps`}>
               🏆 Best <b>{pr.weight}</b> total × {pr.reps}
@@ -244,8 +290,25 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
 
           {/* Primary action */}
           <button className="fc-log" onClick={logSet} disabled={setData.done}>
-            {setData.done ? '✓ logged' : `✓ Log Set ${activeSetIdx + 1}`}
+            {setData.done ? '✓ Logged — edit the fields above to change it' : `✓ Log Set ${activeSetIdx + 1}`}
           </button>
+
+          {/* Rest timer — start it (or it auto-starts after a set); the elapsed
+              time is logged on the next set as the rest taken before it. */}
+          <div className="fc-rest">
+            {restStart == null ? (
+              <button className="fc-rest-btn" onClick={startRest}>⏱ Start rest timer</button>
+            ) : (
+              <div className="fc-rest-run">
+                <span className="fc-rest-time">⏱ {mmss(restElapsed)}</span>
+                <button className="fc-rest-stop" onClick={() => stopRest(true)}>Stop &amp; log</button>
+                <button className="fc-rest-x" onClick={() => stopRest(false)} title="Discard">✕</button>
+              </div>
+            )}
+            {restStart == null && setData.rest_seconds != null && (
+              <span className="fc-rest-prev">rested {mmss(Number(setData.rest_seconds))} before this set</span>
+            )}
+          </div>
 
           {/* Secondary actions */}
           <div className="fc-actions">

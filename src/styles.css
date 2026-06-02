@@ -1302,3 +1302,40 @@ button { font: inherit; cursor: pointer; border: none; }
   color: var(--muted); }
 .quick-chip.on { border-color: var(--accent); color: var(--accent);
   background: rgba(91,110,245,.10); }
+
+/* per-set selector (go back & edit any set) */
+.fc-setsel { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 2px; }
+.fc-sset { min-width: 38px; padding: 7px 9px; border-radius: 10px; font-weight: 800;
+  font-size: 13px; border: 1px solid var(--line); background: var(--panel); color: var(--muted); }
+.fc-sset.on { border-color: var(--accent); color: var(--accent); background: rgba(91,110,245,.10); }
+.fc-sset-done { color: var(--good, #2fb380); }
+.fc-sset-skipped { color: #c9933a; }
+
+/* rest timer */
+.fc-rest { margin-top: 10px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.fc-rest-btn { width: 100%; background: var(--panel); border: 1px dashed var(--line);
+  border-radius: 12px; padding: 11px; font-weight: 700; font-size: 13.5px; color: var(--muted); }
+.fc-rest-btn:active { color: var(--text); border-color: var(--accent); }
+.fc-rest-run { width: 100%; display: flex; align-items: center; gap: 8px;
+  background: rgba(91,110,245,.10); border: 1px solid var(--accent); border-radius: 12px; padding: 8px 10px; }
+.fc-rest-time { font-variant-numeric: tabular-nums; font-weight: 900; font-size: 20px;
+  color: var(--accent); flex: 1; text-align: left; }
+.fc-rest-stop { background: var(--accent); color: #fff; border: none; border-radius: 9px;
+  padding: 8px 12px; font-weight: 800; font-size: 13px; }
+.fc-rest-x { background: transparent; border: none; color: var(--muted); font-size: 16px; padding: 0 4px; }
+.fc-rest-prev { font-size: 11px; color: var(--muted); }
+
+/* big, obvious expand/collapse for the day's tasks */
+.tl-expand { width: 100%; margin-top: 4px; background: var(--panel-2);
+  border: 1px solid var(--line); border-radius: 14px; padding: 14px;
+  font-weight: 800; font-size: 14px; color: var(--accent); letter-spacing: .2px; }
+.tl-expand:active { background: rgba(91,110,245,.12); }
+
+/* prominent meal swap card */
+.cl-swap { background: #fff8e6; border: 1px solid #f0e3bf; border-radius: 14px;
+  padding: 12px; margin-bottom: 12px; }
+.cl-swap-h { font-weight: 800; font-size: 14px; color: #6b551a; margin-bottom: 8px; }
+.cl-swap-ta { width: 100%; box-sizing: border-box; border: 1px solid #e7d9ad;
+  border-radius: 10px; padding: 10px; font-size: 14px; color: var(--text);
+  background: #fffdf6; resize: vertical; }
+.cl-swap-hint { font-size: 11px; color: #b79233; margin-top: 6px; }
