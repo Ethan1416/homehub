@@ -1339,3 +1339,18 @@ button { font: inherit; cursor: pointer; border: none; }
   border-radius: 10px; padding: 10px; font-size: 14px; color: var(--text);
   background: #fffdf6; resize: vertical; }
 .cl-swap-hint { font-size: 11px; color: #b79233; margin-top: 6px; }
+
+/* set box turns green once weight + reps are filled (replaces the green button) */
+.fc-set.logged { border-color: #2fb380; background: rgba(47,179,128,.09); }
+
+/* ½ reps on the left, Rest + Done buttons on the right */
+.fc-row-tail { grid-template-columns: 0.72fr 1.6fr; align-items: end; }
+.fc-tail { display: flex; gap: 8px; }
+.fc-tail > button { flex: 1; border-radius: 12px; padding: 12px 8px; font-weight: 800;
+  font-size: 13px; border: 1px solid var(--line); }
+.fc-tail .fc-rest-btn { width: auto; background: rgba(91,110,245,.10);
+  border-color: var(--accent); color: var(--accent); }
+.fc-tail .fc-rest-run { background: var(--accent); color: #fff; border-color: var(--accent);
+  font-variant-numeric: tabular-nums; }
+.fc-tail .fc-done-btn { background: var(--panel-2); color: var(--text); }
+.fc-rest-prev { font-size: 11px; color: var(--muted); text-align: center; margin-top: 8px; }
