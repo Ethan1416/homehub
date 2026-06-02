@@ -1,8 +1,12 @@
-import { useMemo } from 'react'
-import { MACHINES } from '../../lib/constants.js'
+import { useMemo, useState } from 'react'
+import { MACHINES, gymVisibleTo } from '../../lib/constants.js'
 import { fmtTime, sameDay, addDays, occursOn, minutesOfDay, ymd } from '../../lib/date.js'
 import { parseEvent, completion, sessionSummary, EFFORT_LABELS } from '../../lib/checklist.js'
-import { useProgress, useGymOverrides } from '../../lib/useData.js'
+import {
+  useProgress, useGymOverrides,
+  useDaysOff, setDayOff, clearDayOff,
+  useCarryover, addCarryover, setCarryoverDone, deleteCarryover
+} from '../../lib/useData.js'
 
 const PASTELS = [
   { bg: '#eef1fe', bar: '#5b6ef5' },
@@ -31,12 +35,23 @@ export default function TasksTab({
 }) {
   const { byEvent } = useProgress(ymd(selected), user)
   const overrides = useGymOverrides(user)
+  const daysOff = useDaysOff(user)
+  const carryover = useCarryover(user)
   const displayName = user === 'justin' ? 'Justin' : 'Ethan'
+
+  const selKey = ymd(selected)
+  const wholeOff = daysOff.has(`${selKey}|*`)
+  const isOff = (e) => wholeOff || daysOff.has(`${selKey}|${e.id}`)
+  const toggleRestDay = () =>
+    wholeOff ? clearDayOff(selKey, '*', user) : setDayOff(selKey, '*', user)
+  const [noteDraft, setNoteDraft] = useState('')
+  const openCarry = carryover.filter((c) => !c.done)
 
   const dayEvents = useMemo(() => {
     const overrideId = overrides[ymd(selected)]
     let list = events.filter((e) => {
       if (e.id === overrideId) return true                 // always include override
+      if (!gymVisibleTo(e, user)) return false             // other person's gym → hide
       if (overrideId && e.type === 'gym') return false     // hide other gym today
       return occursOn(e, selected)
     })
@@ -46,15 +61,17 @@ export default function TasksTab({
       if (ov) list = [...list, ov]
     }
     return list.sort((a, b) => minutesOfDay(a) - minutesOfDay(b))
-  }, [events, selected, overrides])
+  }, [events, selected, overrides, user])
 
   const withStatus = dayEvents.map((e) => {
     const prog = byEvent[e.id] || {}
     const { done, total } = completion(parseEvent(e), prog)
     const pct = total ? Math.round((done / total) * 100) : 0
-    const status = total === 0 || done === 0 ? 'todo' : done >= total ? 'done' : 'progress'
+    const off = isOff(e)
+    const status = off ? 'rest'
+      : total === 0 || done === 0 ? 'todo' : done >= total ? 'done' : 'progress'
     const summary = e.type === 'gym' ? sessionSummary(prog) : null
-    return { e, done, total, pct, status, summary }
+    return { e, done, total, pct, status, summary, off }
   })
   const counts = {
     todo: withStatus.filter((x) => x.status === 'todo').length,
@@ -107,12 +124,45 @@ export default function TasksTab({
         <button className="wk-nav" onClick={() => setWeekBase(addDays(weekBase, 7))}>›</button>
       </div>
 
+      {/* Carry-over notes — roll forward every day until checked off */}
+      <div className="carry">
+        {openCarry.map((c) => (
+          <div className="carry-row" key={c.id}>
+            <button className="carry-check" onClick={() => setCarryoverDone(c.id, true)}
+              title="Mark done">○</button>
+            <span className="carry-body">{c.body}</span>
+            <span className="carry-age">
+              {c.created_on === selKey ? 'today'
+                : `↻ ${Math.max(1, Math.round((new Date(selKey) - new Date(c.created_on)) / 86400000))}d`}
+            </span>
+            <button className="carry-del" onClick={() => deleteCarryover(c.id)} title="Remove">×</button>
+          </div>
+        ))}
+        <form className="carry-add" onSubmit={(ev) => {
+          ev.preventDefault()
+          if (noteDraft.trim()) { addCarryover(noteDraft, user); setNoteDraft('') }
+        }}>
+          <input value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)}
+            placeholder="+ Carry-over note (rolls over until done)" />
+          {noteDraft.trim() && <button type="submit">Add</button>}
+        </form>
+      </div>
+
       <div className="ph-sec">
         <h3>{sameDay(selected, new Date()) ? "Today's Tasks" : selected.toLocaleDateString([], { weekday: 'long' }) + "'s Tasks"}</h3>
+        <button className={`rest-toggle ${wholeOff ? 'on' : ''}`} onClick={toggleRestDay}>
+          {wholeOff ? '↶ Undo rest day' : '🛌 Took the day off'}
+        </button>
         {filter && <button className="see-all" onClick={() => setFilter(null)}>Show all</button>}
       </div>
 
-      {!withStatus.some((x) => x.e.type === 'gym') && (
+      {wholeOff && (
+        <div className="rest-banner">
+          🛌 <b>Rest day</b> — marked as intentional time off. Your streak keeps going.
+        </div>
+      )}
+
+      {!wholeOff && !withStatus.some((x) => x.e.type === 'gym') && (
         <button className="rest-add" onClick={() => openGymPicker(selected)}>
           <span>💪 Rest day —</span>
           <b>Add a gym session?</b>
@@ -121,21 +171,22 @@ export default function TasksTab({
 
       <div className="timeline">
         {shown.length === 0 && <div className="empty">Nothing here 🎉</div>}
-        {shown.map(({ e, done, total, pct, status, summary }, i) => {
+        {shown.map(({ e, done, total, pct, status, summary, off }, i) => {
           const p = PASTELS[i % PASTELS.length]
           const desc = (e.notes || '').split('\n').map((s) => s.trim()).filter(Boolean)[0] || ''
           return (
-            <div className="tl-row" key={e.id}>
-              <span className="tl-dot" style={{ borderColor: p.bar }} />
-              <button className="task" style={{ background: p.bg }} onClick={() => openChecklist(e)}>
+            <div className={`tl-row ${off ? 'rest' : ''}`} key={e.id}>
+              <span className="tl-dot" style={{ borderColor: off ? '#9aa0b5' : p.bar }} />
+              <button className="task" style={{ background: off ? '#f1f2f6' : p.bg }}
+                onClick={() => openChecklist(e)}>
                 <div className="task-top">
                   <b>{e.title}</b>
-                  <span className="task-time" style={{ color: p.bar }}>
-                    {e.all_day ? 'All day' : fmtTime(e.starts_at)}
+                  <span className="task-time" style={{ color: off ? '#9aa0b5' : p.bar }}>
+                    {off ? '🛌 Rest' : e.all_day ? 'All day' : fmtTime(e.starts_at)}
                   </span>
                 </div>
                 {desc && <p className="task-desc">{desc}</p>}
-                {total > 0 && (
+                {!off && total > 0 && (
                   <div className="task-prog">
                     <div className="bar"><i style={{ width: `${pct}%`, background: p.bar }} /></div>
                     <span style={{ color: p.bar }}>{status === 'done' ? '✓ Done' : `${done}/${total}`}</span>

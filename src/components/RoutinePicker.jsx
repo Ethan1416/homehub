@@ -1,5 +1,6 @@
 import { useEvents, setGymOverride } from '../lib/useData.js'
 import { ymd } from '../lib/date.js'
+import { gymVisibleTo } from '../lib/constants.js'
 
 const dowOrder = (e) => {
   const d = new Date(e.starts_at).getDay()
@@ -11,7 +12,7 @@ const dowName = (e) =>
 export default function RoutinePicker({ day, user = 'ethan', onClose, onBuildCustom }) {
   const { events } = useEvents()
   const gymTemplates = events
-    .filter((e) => e.type === 'gym' && e.recurrence === 'weekly')
+    .filter((e) => e.type === 'gym' && e.recurrence === 'weekly' && gymVisibleTo(e, user))
     .sort((a, b) => dowOrder(a) - dowOrder(b))
 
   async function pick(eid) {

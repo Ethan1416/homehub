@@ -13,6 +13,12 @@ export const MACHINES = {
 export const ownerColor = (owner) => (PEOPLE[owner] || PEOPLE.shared).color
 export const ownerLabel = (owner) => (PEOPLE[owner] || PEOPLE.shared).label
 
+// Gym sessions are personal to each person; meals and other items stay shared
+// across the household. An event belongs in <user>'s gym plan if it is unowned,
+// explicitly shared, or owned by them. Non-gym events are always visible.
+export const gymVisibleTo = (e, user) =>
+  e.type !== 'gym' || !e.owner || e.owner === 'shared' || e.owner === user
+
 // Per-person profile (drives strength benchmark scaling).
 export const PROFILES = {
   ethan:  { name: 'Ethan',  bodyweight_kg: 74.8, height_cm: 180, age: 27, sex: 'male' },

@@ -3,8 +3,11 @@
 // "Coming up next" previews what's after.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { parseEvent, completion, defaultRestFor, cellState } from '../lib/checklist.js'
-import { useProgress, saveProgress } from '../lib/useData.js'
+import { useProgress, saveProgress, useDaysOff, setDayOff, clearDayOff } from '../lib/useData.js'
+import { supabase } from '../supabaseClient.js'
 import { ymd, fmtTime } from '../lib/date.js'
+import { exerciseCatalog, exerciseKey, bestAtReps, recommendedReps } from '../lib/workouts.js'
+import { gymVisibleTo } from '../lib/constants.js'
 
 const stripNum = (label) => label.replace(/^\d+\.\s*/, '').split('—')[0].trim()
 
@@ -17,11 +20,37 @@ const EFFORT_OPTS = [
   ['max', 'max']
 ]
 
-export default function FocusedChecklistSheet({ event, day, user = 'ethan', onClose, openGymPicker, onBuildCustom }) {
+export default function FocusedChecklistSheet({ event, day, user = 'ethan', events = [], onClose, openGymPicker, onBuildCustom }) {
   const parsed = parseEvent(event)
   const logDate = ymd(day)
   const { byEvent } = useProgress(logDate, user)
   const remote = byEvent[event.id] || {}
+
+  // History across this user's gym sessions, for the all-time "best at reps" PR.
+  const [allRows, setAllRows] = useState([])
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const since = new Date(); since.setDate(since.getDate() - 730)
+      const { data } = await supabase
+        .from('progress').select('event_id,item_key,weight,reps,log_date')
+        .eq('user_id', user)
+        .gte('log_date', since.toISOString().slice(0, 10))
+      if (!cancelled) setAllRows(data || [])
+    })()
+    return () => { cancelled = true }
+  }, [event.id, user])
+  const catalog = useMemo(
+    () => exerciseCatalog((events || []).filter((e) => gymVisibleTo(e, user))),
+    [events, user])
+
+  const daysOff = useDaysOff(user)
+  const isRest = daysOff.has(`${logDate}|${event.id}`)
+  function takeDayOff() {
+    if (isRest) { clearDayOff(logDate, event.id, user); return }
+    setDayOff(logDate, event.id, user)
+    onClose()
+  }
 
   const [v, setV] = useState({})
   useEffect(() => { setV({}) }, [logDate, event.id])
@@ -89,6 +118,10 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', onCl
   const setData = cell(setKey)
   const restPlaceholder = defaultRestFor(activeGroup.label)
   const allSetsMoved = states.every((s) => s !== 'open')
+
+  // All-time best weight at the prescribed reps, for the reference line.
+  const prTarget = recommendedReps(activeGroup.label)
+  const pr = bestAtReps(catalog[exerciseKey(activeGroup.label)], allRows, prTarget)
 
   function logSet() {
     put(setKey, { done: true, skipped: false })
@@ -167,6 +200,14 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', onCl
         <div className="fc-ex">
           <h2 className="fc-ex-name">{stripNum(activeGroup.label)}</h2>
           <div className="fc-ex-sub">Set {activeSetIdx + 1} of {activeGroup.sets}{allSetsMoved ? ' · all done' : ''}</div>
+          {pr ? (
+            <div className="fc-pr" title={`Best ever at ${prTarget}+ reps`}>
+              🏆 Best <b>{pr.weight}</b> × {pr.reps}
+              {prTarget ? <span className="fc-pr-tgt"> @ {prTarget}+ reps</span> : null}
+            </div>
+          ) : prTarget ? (
+            <div className="fc-pr fc-pr-empty">No logged set at {prTarget}+ reps yet</div>
+          ) : null}
 
           {/* Set inputs */}
           <div className="fc-set">
@@ -218,6 +259,9 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', onCl
             <button onClick={skipExercise}>↷↷ Skip rest</button>
             <button onClick={addSet}>+ Add set</button>
           </div>
+          <button className={`fc-dayoff ${isRest ? 'on' : ''}`} onClick={takeDayOff}>
+            {isRest ? '↶ Undo — this was a rest day' : '🛌 Took the day off'}
+          </button>
         </div>
 
         {/* Coming up next */}

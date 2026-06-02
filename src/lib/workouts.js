@@ -215,6 +215,35 @@ export function milestonesFor(name, best, observedRate /* lb/week or null */) {
   return ms
 }
 
+// Parse the "recommended reps" target from an exercise line. Returns the lower
+// bound of the prescription (the reps you must clear for a load to count):
+//   "4 sets × 6–8 reps" → 6 · "× 10 reps" → 10 · "5 × 10" → 10 · "× 0 reps" → 0
+export function recommendedReps(label) {
+  const m = label.match(/[×xX]\s*(\d{1,2})\s*(?:[–\-]\s*\d{1,2})?\s*reps?/i)
+  if (m) return parseInt(m[1], 10)
+  const m2 = label.match(/[×xX]\s*(\d{1,2})/)
+  return m2 ? parseInt(m2[1], 10) : null
+}
+
+// Heaviest weight ever logged for an exercise at >= targetReps reps. Scans the
+// user's set rows matched to this catalog entry's sources. Returns
+// { weight, reps, date } or null. Used to show a personal best next to the
+// prescribed reps on the gym to-do.
+export function bestAtReps(catalogEntry, allRows, targetReps) {
+  if (!catalogEntry || targetReps == null) return null
+  const matchKeys = new Set(catalogEntry.sources.map((s) => `${s.event_id}|${s.gKey}`))
+  let best = null
+  for (const r of allRows) {
+    const m = r.item_key.match(/^(g\d+)#\d+$/)
+    if (!m || !matchKeys.has(`${r.event_id}|${m[1]}`)) continue
+    const w = Number(r.weight), reps = Number(r.reps)
+    if (!Number.isFinite(w) || w <= 0) continue
+    if (!Number.isFinite(reps) || reps < targetReps) continue
+    if (!best || w > best.weight) best = { weight: w, reps, date: r.log_date }
+  }
+  return best
+}
+
 // ─── catalog + history (unchanged behaviour) ──────────────────────────────
 export function exerciseCatalog(events) {
   const map = {}

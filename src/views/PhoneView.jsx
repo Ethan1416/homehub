@@ -91,6 +91,7 @@ export default function PhoneView() {
 
       {modal?.checklist && modal.checklist.type === 'gym' && (
         <FocusedChecklistSheet event={modal.checklist} day={new Date(selected)} user={user}
+          events={events}
           onClose={() => setModal(null)}
           openGymPicker={() => setModal({ gymPicker: new Date(selected) })}
           onBuildCustom={() => setModal({ custom: ymd(new Date(selected)) })} />

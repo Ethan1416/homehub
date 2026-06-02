@@ -80,12 +80,22 @@ function ymd(d) {
   const p = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
+const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x }
+// Mirror of src/lib/date.js occursOn — MUST stay in lockstep with the app.
+// Compare by calendar day (not full datetime, which hid not-yet-due daily items)
+// and honor a days_of_week array for multi-day weekly routines (which the old
+// version ignored). This was the "widget says no tasks but app shows them" bug.
 function occursOn(ev, d) {
-  const dayKey = ymd(d)
-  const start = new Date(ev.starts_at)
-  if (ev.recurrence === 'daily') return start <= d
-  if (ev.recurrence === 'weekly') return start <= d && start.getDay() === d.getDay()
-  return ymd(start) === dayKey
+  const s = new Date(ev.starts_at)
+  if (ev.recurrence === 'daily') return startOfDay(d) >= startOfDay(s)
+  if (ev.recurrence === 'weekly') {
+    if (startOfDay(d) < startOfDay(s)) return false
+    const dow = d.getDay()
+    if (Array.isArray(ev.days_of_week) && ev.days_of_week.length > 0)
+      return ev.days_of_week.includes(dow)
+    return dow === s.getDay()
+  }
+  return ymd(s) === ymd(d)
 }
 
 // ── shared: load today's events + progress and pick the next open item ─
@@ -100,7 +110,10 @@ async function loadNext() {
   const overrideId = overrides[0]?.event_id
   const overrideEv = overrideId ? events.find((e) => e.id === overrideId) : null
 
-  let todaysEvents = events.filter((e) => occursOn(e, today))
+  // Gym sessions are personal (owner === this user / shared / unowned); meals
+  // and other items are shared. Mirrors gymVisibleTo() in the app.
+  const mine = (e) => e.type !== 'gym' || !e.owner || e.owner === 'shared' || e.owner === USER
+  let todaysEvents = events.filter((e) => mine(e) && occursOn(e, today))
   if (overrideEv) {
     todaysEvents = todaysEvents.filter((e) => e.type !== 'gym').concat([overrideEv])
   }

@@ -5,7 +5,7 @@ import { exerciseCatalog, exerciseHistory, nextMilestone, milestoneIncrement, mi
 import { parseEvent, completion } from '../../lib/checklist.js'
 import { useProgress, useGymOverrides } from '../../lib/useData.js'
 import { occursOn, ymd, fmtTime } from '../../lib/date.js'
-import { PROFILE_BW_LB } from '../../lib/constants.js'
+import { PROFILE_BW_LB, gymVisibleTo } from '../../lib/constants.js'
 
 function fmtDuration(weeks) {
   if (weeks == null) return '—'
@@ -297,7 +297,8 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
     return () => { cancelled = true }
   }, [user])
 
-  const catalog = useMemo(() => exerciseCatalog(events), [events])
+  const myEvents = useMemo(() => events.filter((e) => gymVisibleTo(e, user)), [events, user])
+  const catalog = useMemo(() => exerciseCatalog(myEvents), [myEvents])
   const filteredCatalog = useMemo(() => {
     if (!focusedEventId) return catalog
     const m = {}
@@ -365,7 +366,7 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
       </div>
 
       {section === 'todo' && (
-        <TodayWorkout events={events} user={user}
+        <TodayWorkout events={myEvents} user={user}
           openChecklist={openChecklist}
           switchToTasks={switchToTasks} />
       )}
@@ -391,7 +392,7 @@ export default function WorkoutTab({ events, user = 'ethan', focusedEventId, cle
         (routineOpen
           ? <RoutineEditor eventId={routineOpen} events={events} user={user}
               onBack={() => setRoutineOpen(null)} />
-          : <RoutinesList events={events} onOpen={setRoutineOpen} />)}
+          : <RoutinesList events={myEvents} onOpen={setRoutineOpen} />)}
     </>
   )
 }

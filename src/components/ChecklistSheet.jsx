@@ -5,6 +5,7 @@ import { useEvents } from '../lib/useData.js'
 import { supabase } from '../supabaseClient.js'
 import { ymd, fmtTime } from '../lib/date.js'
 import { exerciseKey, exerciseCatalog, exerciseHistory, recentVariability } from '../lib/workouts.js'
+import { gymVisibleTo } from '../lib/constants.js'
 
 const EFFORT_OPTS = [
   ['', '— label —'],
@@ -139,7 +140,9 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
     return () => { cancelled = true }
   }, [event.id, user, parsed.kind])
 
-  const catalog = useMemo(() => exerciseCatalog(allEvents), [allEvents])
+  const catalog = useMemo(
+    () => exerciseCatalog(allEvents.filter((e) => gymVisibleTo(e, user))),
+    [allEvents, user])
   const trendByKey = useMemo(() => {
     const out = {}
     for (const k in catalog) {

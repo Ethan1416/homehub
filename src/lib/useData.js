@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase, isConfigured } from '../supabaseClient.js'
 import { occursOn } from './date.js'
 import { parseEvent, completion } from './checklist.js'
+import { gymVisibleTo } from './constants.js'
 
 // Shared realtime data layer for both the phone and TV views.
 
@@ -102,23 +103,29 @@ export function useStreak(events, userId = 'ethan') {
     if (!isConfigured) return
     const since = new Date(); since.setDate(since.getDate() - 120)
     const sinceKey = since.toISOString().slice(0, 10)
-    const { data } = await supabase
-      .from('progress').select('*')
-      .gte('log_date', sinceKey).eq('user_id', userId)
+    const [{ data }, { data: offData }] = await Promise.all([
+      supabase.from('progress').select('*').gte('log_date', sinceKey).eq('user_id', userId),
+      supabase.from('day_off').select('*').gte('log_date', sinceKey).eq('user_id', userId)
+    ])
 
     // Bucket: byDate[ymd][event_id][item_key] = row
     const byDate = {}
     for (const r of data || []) {
       ((byDate[r.log_date] ||= {})[r.event_id] ||= {})[r.item_key] = r
     }
+    const offSet = new Set((offData || []).map((r) => `${r.log_date}|${r.event_key}`))
     const pad = (n) => String(n).padStart(2, '0')
     const key = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 
     const dayQualifies = (d) => {
-      const todays = (events || []).filter((e) => occursOn(e, d))
-      if (todays.length === 0) return false
-      const pd = byDate[key(d)] || {}
-      return todays.every((e) => {
+      const k = key(d)
+      if (offSet.has(`${k}|*`)) return true                 // whole rest day bridges streak
+      const scheduled = (events || []).filter((e) => gymVisibleTo(e, userId) && occursOn(e, d))
+      if (scheduled.length === 0) return false
+      const active = scheduled.filter((e) => !offSet.has(`${k}|${e.id}`))
+      if (active.length === 0) return true                  // every task marked rest = rest day
+      const pd = byDate[k] || {}
+      return active.every((e) => {
         const parsed = parseEvent(e)
         const { done, total } = completion(parsed, pd[e.id] || {})
         return total > 0 && done === total
@@ -217,6 +224,75 @@ export async function setGymOverride(logDate, eventId, userId = 'ethan') {
 export async function clearGymOverride(logDate, userId = 'ethan') {
   if (!isConfigured) return
   return supabase.from('gym_override').delete().eq('log_date', logDate).eq('user_id', userId)
+}
+
+// Rest-day markers. Returns a Set of `${log_date}|${event_key}` for the recent
+// window ('*' = whole day off, else an event id). Realtime-subscribed.
+export function useDaysOff(userId = 'ethan') {
+  const [offSet, setOffSet] = useState(() => new Set())
+  const chanId = useRef(++_chSeq)
+  const reload = useCallback(async () => {
+    if (!isConfigured) return
+    const since = new Date(); since.setDate(since.getDate() - 120)
+    const { data } = await supabase.from('day_off').select('*')
+      .eq('user_id', userId).gte('log_date', since.toISOString().slice(0, 10))
+    setOffSet(new Set((data || []).map((r) => `${r.log_date}|${r.event_key}`)))
+  }, [userId])
+  useEffect(() => {
+    reload()
+    if (!isConfigured) return
+    const ch = supabase.channel(`dayoff-${userId}-${chanId.current}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'day_off' }, reload)
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [reload, userId])
+  return offSet
+}
+export async function setDayOff(logDate, eventKey = '*', userId = 'ethan') {
+  if (!isConfigured) return
+  return supabase.from('day_off').upsert(
+    { log_date: logDate, event_key: eventKey, user_id: userId },
+    { onConflict: 'log_date,user_id,event_key' })
+}
+export async function clearDayOff(logDate, eventKey = '*', userId = 'ethan') {
+  if (!isConfigured) return
+  return supabase.from('day_off').delete()
+    .eq('log_date', logDate).eq('event_key', eventKey).eq('user_id', userId)
+}
+
+// Carry-over notes that roll forward each day until checked off.
+export function useCarryover(userId = 'ethan') {
+  const [rows, setRows] = useState([])
+  const chanId = useRef(++_chSeq)
+  const reload = useCallback(async () => {
+    if (!isConfigured) return
+    const { data } = await supabase.from('carryover').select('*')
+      .eq('user_id', userId).order('created_on', { ascending: true })
+    setRows(data || [])
+  }, [userId])
+  useEffect(() => {
+    reload()
+    if (!isConfigured) return
+    const ch = supabase.channel(`carry-${userId}-${chanId.current}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'carryover' }, reload)
+      .subscribe()
+    return () => supabase.removeChannel(ch)
+  }, [reload, userId])
+  return rows
+}
+export async function addCarryover(body, userId = 'ethan') {
+  if (!isConfigured || !body.trim()) return
+  return supabase.from('carryover').insert({ body: body.trim(), user_id: userId })
+}
+export async function setCarryoverDone(id, done) {
+  if (!isConfigured) return
+  return supabase.from('carryover').update(
+    { done, done_on: done ? new Date().toISOString().slice(0, 10) : null,
+      updated_at: new Date().toISOString() }).eq('id', id)
+}
+export async function deleteCarryover(id) {
+  if (!isConfigured) return
+  return supabase.from('carryover').delete().eq('id', id)
 }
 
 // Ordered roadmap milestones.
