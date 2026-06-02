@@ -1354,3 +1354,16 @@ button { font: inherit; cursor: pointer; border: none; }
   font-variant-numeric: tabular-nums; }
 .fc-tail .fc-done-btn { background: var(--panel-2); color: var(--text); }
 .fc-rest-prev { font-size: 11px; color: var(--muted); text-align: center; margin-top: 8px; }
+
+/* exercise-completion button (clear, names the exercise) */
+.fc-finish { width: 100%; margin-top: 10px; border: none; border-radius: 14px;
+  padding: 14px; font-weight: 800; font-size: 15px; color: #fff;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%); }
+.fc-finish:active { transform: scale(.985); }
+
+/* rest timer vs recommended target: counting (accent) → good (green) → over (red) */
+.fc-tail .fc-rest-run { font-variant-numeric: tabular-nums; }
+.fc-tail .fc-rest-counting { background: var(--accent); color: #fff; border-color: var(--accent); }
+.fc-tail .fc-rest-good { background: #2fb380; color: #fff; border-color: #2fb380; }
+.fc-tail .fc-rest-over { background: #e5575d; color: #fff; border-color: #e5575d; }
+.fc-rest-den { opacity: .82; font-weight: 700; }

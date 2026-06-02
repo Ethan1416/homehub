@@ -2,7 +2,7 @@
 // inputs, no scrolling. Forward/back chevrons jump between exercises and
 // "Coming up next" previews what's after.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { parseEvent, completion, cellState } from '../lib/checklist.js'
+import { parseEvent, completion, cellState, defaultRestFor } from '../lib/checklist.js'
 import { useProgress, saveProgress } from '../lib/useData.js'
 import { supabase } from '../supabaseClient.js'
 import { ymd, fmtTime, parseYmd } from '../lib/date.js'
@@ -167,11 +167,19 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
     if (restStart != null) put(setKey, { rest_seconds: Math.round((Date.now() - restStart) / 1000) })
     setRestStart(null)
   }
-  // "Done" = end the workout here (never forced — Rest is always available too).
-  function endWorkout() {
+  // "Done with this exercise" = log the current set, then jump to the next
+  // exercise (or finish the workout if this was the last one).
+  function finishExercise() {
     if (setData.weight && setData.reps && !setData.done) put(setKey, { done: true, skipped: false })
-    onClose()
+    setRestStart(null)
+    if (activeIdx < groups.length - 1) setActiveIdx(activeIdx + 1)
+    else onClose()
   }
+
+  // Rest-timer target: researched recommended rest for this movement.
+  const recRest = defaultRestFor(activeGroup.label)
+  const restColor = restElapsed < recRest ? 'counting'
+    : restElapsed < recRest * 1.5 ? 'good' : 'over'
   function skipSet() {
     put(setKey, { skipped: true, done: false })
   }
@@ -306,17 +314,26 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
               </label>
               <div className="fc-tail">
                 {restStart == null ? (
-                  <button className="fc-rest-btn" onClick={restNext}>⏱ Rest →</button>
+                  <button className="fc-rest-btn" onClick={restNext}>⏱ Rest → next set</button>
                 ) : (
-                  <button className="fc-rest-run" onClick={stopRest}>⏱ {mmss(restElapsed)} · stop</button>
+                  <button className={`fc-rest-run fc-rest-${restColor}`} onClick={stopRest}
+                    title="Tap to stop the rest timer">
+                    ⏱ {mmss(restElapsed)} <span className="fc-rest-den">/ {mmss(recRest)}</span>
+                  </button>
                 )}
-                <button className="fc-done-btn" onClick={endWorkout}>✓ Done</button>
               </div>
             </div>
             {setData.rest_seconds != null && restStart == null && (
               <div className="fc-rest-prev">rested {mmss(Number(setData.rest_seconds))} before this set</div>
             )}
           </div>
+
+          {/* Exercise-level completion — unambiguous: names the exercise. */}
+          <button className="fc-finish" onClick={finishExercise}>
+            {activeIdx < groups.length - 1
+              ? `✓ Done with ${stripNum(activeGroup.label)} →`
+              : '🏁 Finish workout'}
+          </button>
 
           {/* Secondary actions */}
           <div className="fc-actions">
