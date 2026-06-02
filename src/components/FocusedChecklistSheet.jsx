@@ -6,7 +6,7 @@ import { parseEvent, completion, defaultRestFor, cellState } from '../lib/checkl
 import { useProgress, saveProgress, useDaysOff, setDayOff, clearDayOff } from '../lib/useData.js'
 import { supabase } from '../supabaseClient.js'
 import { ymd, fmtTime } from '../lib/date.js'
-import { exerciseCatalog, exerciseKey, bestAtReps, recommendedReps } from '../lib/workouts.js'
+import { exerciseCatalog, exerciseHistory, exerciseKey, bestAtReps, recommendedReps, barWeight, perSide } from '../lib/workouts.js'
 import { gymVisibleTo } from '../lib/constants.js'
 
 const stripNum = (label) => label.replace(/^\d+\.\s*/, '').split('—')[0].trim()
@@ -119,9 +119,13 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
   const restPlaceholder = defaultRestFor(activeGroup.label)
   const allSetsMoved = states.every((s) => s !== 'open')
 
-  // All-time best weight at the prescribed reps, for the reference line.
+  // All-time best at the prescribed reps + this exercise's session history.
+  const catEntry = catalog[exerciseKey(activeGroup.label)]
   const prTarget = recommendedReps(activeGroup.label)
-  const pr = bestAtReps(catalog[exerciseKey(activeGroup.label)], allRows, prTarget)
+  const pr = bestAtReps(catEntry, allRows, prTarget)
+  const bar = barWeight(activeGroup.label)              // 45 for barbell lifts, else null
+  const prSide = pr ? perSide(pr.weight, bar) : null
+  const history = catEntry ? exerciseHistory(catEntry, allRows).series : []
 
   function logSet() {
     put(setKey, { done: true, skipped: false })
@@ -202,12 +206,16 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
           <div className="fc-ex-sub">Set {activeSetIdx + 1} of {activeGroup.sets}{allSetsMoved ? ' · all done' : ''}</div>
           {pr ? (
             <div className="fc-pr" title={`Best ever at ${prTarget}+ reps`}>
-              🏆 Best <b>{pr.weight}</b> × {pr.reps}
-              {prTarget ? <span className="fc-pr-tgt"> @ {prTarget}+ reps</span> : null}
+              🏆 Best <b>{pr.weight}</b> total × {pr.reps}
+              {prSide != null && <span className="fc-pr-side"> · load <b>{prSide}</b>/side</span>}
+              {prTarget ? <span className="fc-pr-tgt"> @ {prTarget}+</span> : null}
             </div>
           ) : prTarget ? (
             <div className="fc-pr fc-pr-empty">No logged set at {prTarget}+ reps yet</div>
           ) : null}
+          {bar != null && (
+            <div className="fc-pr-hint">Logged weights are total bar load · {bar} lb bar</div>
+          )}
 
           {/* Set inputs */}
           <div className="fc-set">
@@ -262,6 +270,25 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
           <button className={`fc-dayoff ${isRest ? 'on' : ''}`} onClick={takeDayOff}>
             {isRest ? '↶ Undo — this was a rest day' : '🛌 Took the day off'}
           </button>
+
+          {history.length > 0 && (
+            <div className="fc-hist">
+              <div className="fc-hist-h">History · {stripNum(activeGroup.label)}</div>
+              {history.slice(-6).reverse().map((s) => {
+                const side = perSide(s.maxWeight, bar)
+                return (
+                  <div className="fc-hist-row" key={s.date}>
+                    <span className="fc-hist-d">
+                      {new Date(s.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    </span>
+                    <span className="fc-hist-w">
+                      <b>{s.maxWeight}</b>{side != null ? ` (${side}/side)` : ''} × {s.maxReps}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Coming up next */}

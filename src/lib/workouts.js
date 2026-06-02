@@ -225,6 +225,23 @@ export function recommendedReps(label) {
   return m2 ? parseInt(m2[1], 10) : null
 }
 
+// Free-barbell movements load plates per side on a ~45 lb bar, so for these we
+// can show "what to put on each side". Machines, cables, and dumbbells don't —
+// their logged weight is the whole load. Returns the bar weight (45) or null.
+export function barWeight(label) {
+  const l = label.toLowerCase()
+  if (/machine|smith|cable|pec deck|dumbbell|\bdb\b|pulldown|pushdown|\bfly\b|leg press|seated/.test(l)) return null
+  if (/bench|barbell|\bbar\b|\bsquat\b|deadlift/.test(l)) return 45
+  return null
+}
+// Plates to load on ONE side for a given total bar weight. null if not a barbell
+// lift or if the total doesn't exceed the bar.
+export function perSide(total, bar) {
+  if (bar == null) return null
+  const each = (Number(total) - bar) / 2
+  return each > 0 ? Math.round(each * 10) / 10 : null
+}
+
 // Heaviest weight ever logged for an exercise at >= targetReps reps. Scans the
 // user's set rows matched to this catalog entry's sources. Returns
 // { weight, reps, date } or null. Used to show a personal best next to the

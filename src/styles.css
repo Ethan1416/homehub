@@ -1259,3 +1259,18 @@ button { font: inherit; cursor: pointer; border: none; }
   border-radius: 12px; padding: 10px 12px; font-size: 13px; color: var(--text); }
 .carry-add button { background: var(--accent); color: #fff; border: none;
   border-radius: 12px; padding: 10px 14px; font-weight: 800; font-size: 13px; }
+
+/* per-side loading + exercise history in the focused gym sheet */
+.fc-pr-side { color: var(--accent); font-weight: 600; }
+.fc-pr-side b { font-weight: 900; }
+.fc-pr-hint { text-align: center; font-size: 10.5px; color: var(--muted); margin-top: -4px; }
+.fc-hist { margin-top: 14px; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 14px; padding: 10px 12px; }
+.fc-hist-h { font-size: 10px; font-weight: 800; letter-spacing: .4px;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.fc-hist-row { display: flex; justify-content: space-between; align-items: baseline;
+  padding: 5px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.fc-hist-row:first-of-type { border-top: none; }
+.fc-hist-d { color: var(--muted); font-weight: 600; }
+.fc-hist-w { color: var(--text); }
+.fc-hist-w b { font-weight: 900; }
