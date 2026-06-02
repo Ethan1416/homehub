@@ -56,6 +56,15 @@ export const minutesOfDay = (ev) => {
   return s.getHours() * 60 + s.getMinutes()
 }
 
+// Parse a 'YYYY-MM-DD' string as a LOCAL date. `new Date('2026-06-01')` parses
+// as UTC midnight, which is the previous evening in western timezones — that
+// off-by-one is why a 6/1 session displayed as "May 31". Date inputs pass through.
+export const parseYmd = (s) => {
+  if (s instanceof Date) return s
+  const [y, m, d] = String(s).split('-').map(Number)
+  return new Date(y, (m || 1) - 1, d || 1)
+}
+
 // Local YYYY-MM-DD key for a day (used to scope per-occurrence progress).
 export const ymd = (d) => {
   const p = (n) => String(n).padStart(2, '0')

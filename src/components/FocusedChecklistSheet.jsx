@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { parseEvent, completion, defaultRestFor, cellState } from '../lib/checklist.js'
 import { useProgress, saveProgress, useDaysOff, setDayOff, clearDayOff } from '../lib/useData.js'
 import { supabase } from '../supabaseClient.js'
-import { ymd, fmtTime } from '../lib/date.js'
+import { ymd, fmtTime, parseYmd } from '../lib/date.js'
 import { exerciseCatalog, exerciseHistory, exerciseKey, bestAtReps, recommendedReps, barWeight, perSide } from '../lib/workouts.js'
 import { gymVisibleTo } from '../lib/constants.js'
 
@@ -279,7 +279,7 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
                 return (
                   <div className="fc-hist-row" key={s.date}>
                     <span className="fc-hist-d">
-                      {new Date(s.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                      {parseYmd(s.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                     </span>
                     <span className="fc-hist-w">
                       <b>{s.maxWeight}</b>{side != null ? ` (${side}/side)` : ''} × {s.maxReps}

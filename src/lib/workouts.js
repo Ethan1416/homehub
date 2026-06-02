@@ -15,10 +15,18 @@ import { parseEvent } from './checklist.js'
 import { PROFILE_BW_LB } from './constants.js'
 
 const stripNum = (label) => label.replace(/^\d+\.\s*/, '').split('—')[0].trim()
-const normalize = (label) =>
-  stripNum(label)
+const normalize = (label) => {
+  const base = stripNum(label)
     .replace(/\(.*?\)/g, '')
     .replace(/\s+/g, ' ').trim().toLowerCase()
+  // Treat "<incline/decline/flat> bench [press]" as the same lift as
+  // "<...> press", and a bare "bench press" as "flat press", so a session
+  // logged as "Incline bench" shares its history with one logged as
+  // "Incline press" instead of splitting into two exercises.
+  return base
+    .replace(/\b(incline|decline|flat)\s+bench(\s+press)?\b/g, '$1 press')
+    .replace(/\bbench\s+press\b/g, 'flat press')
+}
 export { normalize as exerciseKey }
 
 // {key: {scale, novice, intermediate, advanced, elite, increment}}

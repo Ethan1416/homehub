@@ -4,7 +4,7 @@ import { supabase, isConfigured } from '../../supabaseClient.js'
 import { exerciseCatalog, exerciseHistory, nextMilestone, milestoneIncrement, milestonesFor, currentLevel, recentVariability, muscleGroupFor } from '../../lib/workouts.js'
 import { parseEvent, completion } from '../../lib/checklist.js'
 import { useProgress, useGymOverrides } from '../../lib/useData.js'
-import { occursOn, ymd, fmtTime } from '../../lib/date.js'
+import { occursOn, ymd, fmtTime, parseYmd } from '../../lib/date.js'
 import { PROFILE_BW_LB, gymVisibleTo } from '../../lib/constants.js'
 
 function fmtDuration(weeks) {
@@ -28,9 +28,9 @@ function ExerciseChart({ series, milestones, color = '#5b6ef5' }) {
   if (series.length === 0 && (!milestones || milestones.length === 0)) return null
   const W = 600, H = 260, P_L = 36, P_R = 104, P_T = 14, P_B = 34
   const today = new Date(); today.setHours(0, 0, 0, 0)
-  const dates = series.map((s) => new Date(s.date))
+  const dates = series.map((s) => parseYmd(s.date))
   const futureMs = (milestones || []).filter((m) => m.projectedDate)
-  const mDts = futureMs.map((m) => new Date(m.projectedDate))
+  const mDts = futureMs.map((m) => parseYmd(m.projectedDate))
 
   // X-domain bounds: left is earliest session (with two-week padding), right is
   // the furthest milestone or last session.
@@ -55,7 +55,7 @@ function ExerciseChart({ series, milestones, color = '#5b6ef5' }) {
   const farSpan = Math.max(maxDate.getTime() - yearEnd.getTime(), 86400000)
 
   const x = (d) => {
-    const t = new Date(d).getTime()
+    const t = parseYmd(d).getTime()
     if (!multiYear) return P_L + ((t - minDate.getTime()) / Math.max(maxDate - minDate, 1)) * totalW
     if (t <= yearEnd.getTime())
       return P_L + ((t - minDate.getTime()) / nearSpan) * nearW
@@ -183,7 +183,7 @@ function ExerciseDetail({ ex, allRows, onBack }) {
         <div className="md-state">
           {best > 0 ? `Best ${best} lb` : 'No history yet'}
           {last && (
-            <> · last {last.maxWeight} × {last.maxReps} on {new Date(last.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}</>
+            <> · last {last.maxWeight} × {last.maxReps} on {parseYmd(last.date).toLocaleDateString([], { month: 'short', day: 'numeric' })}</>
           )}
         </div>
         {observedRate != null && observedRate > 0 && (
