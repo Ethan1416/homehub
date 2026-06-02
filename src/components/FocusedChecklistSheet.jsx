@@ -2,8 +2,8 @@
 // inputs, no scrolling. Forward/back chevrons jump between exercises and
 // "Coming up next" previews what's after.
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { parseEvent, completion, defaultRestFor, cellState } from '../lib/checklist.js'
-import { useProgress, saveProgress, useDaysOff, setDayOff, clearDayOff } from '../lib/useData.js'
+import { parseEvent, completion, cellState } from '../lib/checklist.js'
+import { useProgress, saveProgress } from '../lib/useData.js'
 import { supabase } from '../supabaseClient.js'
 import { ymd, fmtTime, parseYmd } from '../lib/date.js'
 import { exerciseCatalog, exerciseHistory, exerciseKey, bestAtReps, recommendedReps, barWeight, perSide } from '../lib/workouts.js'
@@ -44,13 +44,6 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
     () => exerciseCatalog((events || []).filter((e) => gymVisibleTo(e, user))),
     [events, user])
 
-  const daysOff = useDaysOff(user)
-  const isRest = daysOff.has(`${logDate}|${event.id}`)
-  function takeDayOff() {
-    if (isRest) { clearDayOff(logDate, event.id, user); return }
-    setDayOff(logDate, event.id, user)
-    onClose()
-  }
 
   const [v, setV] = useState({})
   useEffect(() => { setV({}) }, [logDate, event.id])
@@ -116,7 +109,6 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
   })()
   const setKey = `${activeGroup.key}#${activeSetIdx}`
   const setData = cell(setKey)
-  const restPlaceholder = defaultRestFor(activeGroup.label)
   const allSetsMoved = states.every((s) => s !== 'open')
 
   // All-time best at the prescribed reps + this exercise's session history.
@@ -240,18 +232,12 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
                 </select>
               </label>
             </div>
-            <div className="fc-row fc-row-2">
+            <div className="fc-row fc-row-1">
               <label className="fc-fld">
-                <span>½ reps</span>
+                <span>½ reps (partials)</span>
                 <input inputMode="numeric" placeholder="0" value={setData.half_reps || ''}
                   onChange={(e) => setV((s) => ({ ...s, [setKey]: { ...cell(setKey), half_reps: e.target.value } }))}
                   onBlur={(e) => put(setKey, { half_reps: e.target.value || null })} />
-              </label>
-              <label className="fc-fld">
-                <span>rest (s)</span>
-                <input inputMode="numeric" placeholder={String(restPlaceholder)} value={setData.rest_seconds ?? ''}
-                  onChange={(e) => setV((s) => ({ ...s, [setKey]: { ...cell(setKey), rest_seconds: e.target.value } }))}
-                  onBlur={(e) => put(setKey, { rest_seconds: e.target.value ? parseInt(e.target.value, 10) : null })} />
               </label>
             </div>
           </div>
@@ -267,10 +253,6 @@ export default function FocusedChecklistSheet({ event, day, user = 'ethan', even
             <button onClick={skipExercise}>↷↷ Skip rest</button>
             <button onClick={addSet}>+ Add set</button>
           </div>
-          <button className={`fc-dayoff ${isRest ? 'on' : ''}`} onClick={takeDayOff}>
-            {isRest ? '↶ Undo — this was a rest day' : '🛌 Took the day off'}
-          </button>
-
           {history.length > 0 && (
             <div className="fc-hist">
               <div className="fc-hist-h">History · {stripNum(activeGroup.label)}</div>

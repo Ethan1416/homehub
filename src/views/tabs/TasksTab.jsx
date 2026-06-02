@@ -44,7 +44,11 @@ export default function TasksTab({
   const isOff = (e) => wholeOff || daysOff.has(`${selKey}|${e.id}`)
   const toggleRestDay = () =>
     wholeOff ? clearDayOff(selKey, '*', user) : setDayOff(selKey, '*', user)
+  const toggleTaskRest = (id) =>
+    daysOff.has(`${selKey}|${id}`) ? clearDayOff(selKey, id, user) : setDayOff(selKey, id, user)
+  const shortTitle = (t) => t.replace(/^[^\w]+/, '').trim()
   const [noteDraft, setNoteDraft] = useState('')
+  const [collapsed, setCollapsed] = useState(false)
   const openCarry = carryover.filter((c) => !c.done)
 
   const dayEvents = useMemo(() => {
@@ -149,9 +153,9 @@ export default function TasksTab({
       </div>
 
       <div className="ph-sec">
-        <h3>{sameDay(selected, new Date()) ? "Today's Tasks" : selected.toLocaleDateString([], { weekday: 'long' }) + "'s Tasks"}</h3>
-        <button className={`rest-toggle ${wholeOff ? 'on' : ''}`} onClick={toggleRestDay}>
-          {wholeOff ? '↶ Undo rest day' : '🛌 Took the day off'}
+        <button className="sec-collapse" onClick={() => setCollapsed((c) => !c)}>
+          <h3>{sameDay(selected, new Date()) ? "Today's Tasks" : selected.toLocaleDateString([], { weekday: 'long' }) + "'s Tasks"}</h3>
+          <span className="sec-chev">{collapsed ? '▸' : '▾'}</span>
         </button>
         {filter && <button className="see-all" onClick={() => setFilter(null)}>Show all</button>}
       </div>
@@ -162,40 +166,72 @@ export default function TasksTab({
         </div>
       )}
 
-      {!wholeOff && !withStatus.some((x) => x.e.type === 'gym') && (
-        <button className="rest-add" onClick={() => openGymPicker(selected)}>
-          <span>💪 Rest day —</span>
-          <b>Add a gym session?</b>
+      {collapsed ? (
+        <button className="tl-collapsed" onClick={() => setCollapsed(false)}>
+          {counts.done}/{withStatus.length} done · {remaining} left · tap to expand
         </button>
+      ) : (
+        <>
+          {!wholeOff && !withStatus.some((x) => x.e.type === 'gym') && (
+            <button className="rest-add" onClick={() => openGymPicker(selected)}>
+              <span>💪 Rest day —</span>
+              <b>Add a gym session?</b>
+            </button>
+          )}
+
+          <div className="timeline">
+            {shown.length === 0 && <div className="empty">Nothing here 🎉</div>}
+            {shown.map(({ e, done, total, pct, status, summary, off }, i) => {
+              const p = PASTELS[i % PASTELS.length]
+              const desc = (e.notes || '').split('\n').map((s) => s.trim()).filter(Boolean)[0] || ''
+              return (
+                <div className={`tl-row ${off ? 'rest' : ''}`} key={e.id}>
+                  <span className="tl-dot" style={{ borderColor: off ? '#9aa0b5' : p.bar }} />
+                  <button className="task" style={{ background: off ? '#f1f2f6' : p.bg }}
+                    onClick={() => openChecklist(e)}>
+                    <div className="task-top">
+                      <b>{e.title}</b>
+                      <span className="task-time" style={{ color: off ? '#9aa0b5' : p.bar }}>
+                        {off ? '🛌 Rest' : e.all_day ? 'All day' : fmtTime(e.starts_at)}
+                      </span>
+                    </div>
+                    {desc && <p className="task-desc">{desc}</p>}
+                    {!off && total > 0 && (
+                      <div className="task-prog">
+                        <div className="bar"><i style={{ width: `${pct}%`, background: p.bar }} /></div>
+                        <span style={{ color: p.bar }}>{status === 'done' ? '✓ Done' : `${done}/${total}`}</span>
+                      </div>
+                    )}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </>
       )}
 
-      <div className="timeline">
-        {shown.length === 0 && <div className="empty">Nothing here 🎉</div>}
-        {shown.map(({ e, done, total, pct, status, summary, off }, i) => {
-          const p = PASTELS[i % PASTELS.length]
-          const desc = (e.notes || '').split('\n').map((s) => s.trim()).filter(Boolean)[0] || ''
-          return (
-            <div className={`tl-row ${off ? 'rest' : ''}`} key={e.id}>
-              <span className="tl-dot" style={{ borderColor: off ? '#9aa0b5' : p.bar }} />
-              <button className="task" style={{ background: off ? '#f1f2f6' : p.bg }}
-                onClick={() => openChecklist(e)}>
-                <div className="task-top">
-                  <b>{e.title}</b>
-                  <span className="task-time" style={{ color: off ? '#9aa0b5' : p.bar }}>
-                    {off ? '🛌 Rest' : e.all_day ? 'All day' : fmtTime(e.starts_at)}
-                  </span>
-                </div>
-                {desc && <p className="task-desc">{desc}</p>}
-                {!off && total > 0 && (
-                  <div className="task-prog">
-                    <div className="bar"><i style={{ width: `${pct}%`, background: p.bar }} /></div>
-                    <span style={{ color: p.bar }}>{status === 'done' ? '✓ Done' : `${done}/${total}`}</span>
-                  </div>
-                )}
-              </button>
+      {/* Quick actions — rest controls live here, not buried inside an exercise */}
+      <div className="quick">
+        <div className="quick-h">Quick actions</div>
+        <button className={`quick-restday ${wholeOff ? 'on' : ''}`} onClick={toggleRestDay}>
+          {wholeOff ? '↶ Undo — whole day off' : '🛌 Take the whole day off'}
+        </button>
+        {!wholeOff && withStatus.length > 0 && (
+          <>
+            <div className="quick-sub">Or rest just one:</div>
+            <div className="quick-tasks">
+              {withStatus.map(({ e }) => {
+                const off = daysOff.has(`${selKey}|${e.id}`)
+                return (
+                  <button key={e.id} className={`quick-chip ${off ? 'on' : ''}`}
+                    onClick={() => toggleTaskRest(e.id)}>
+                    {off ? '🛌 ' : ''}{shortTitle(e.title)}
+                  </button>
+                )
+              })}
             </div>
-          )
-        })}
+          </>
+        )}
       </div>
     </>
   )
