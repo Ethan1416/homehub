@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { parseEvent, completion, defaultRestFor, EFFORT_LABELS, cellState } from '../lib/checklist.js'
-import { useProgress, saveProgress, setGymOverride, clearGymOverride } from '../lib/useData.js'
+import { useProgress, saveProgress, setGymOverride, clearGymOverride, addFoodLog, useFoodLog, removeFoodLog } from '../lib/useData.js'
 import { useEvents } from '../lib/useData.js'
+import FoodSearch from './FoodSearch.jsx'
 import { supabase } from '../supabaseClient.js'
 import { ymd, fmtTime } from '../lib/date.js'
 import { exerciseKey, exerciseCatalog, exerciseHistory, recentVariability } from '../lib/workouts.js'
@@ -25,6 +26,10 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
   const logDate = ymd(day)
   const { byEvent } = useProgress(logDate, user)
   const remote = byEvent[event.id] || {}
+  const { rows: loggedFoods } = useFoodLog(logDate, user)
+  // Foods logged as substitutes for THIS meal — when present, they replace the
+  // pre-planned items (you ate something else).
+  const mealSubs = loggedFoods.filter((f) => f.event_id === event.id)
 
   const [v, setV] = useState({})
   const [setExpanded, setSetExpanded] = useState({})   // per-set toggle (re-expand a done set)
@@ -242,16 +247,22 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
         <div className="cl-body" ref={bodyRef}>
           {parsed.info.map((t, i) => <div className="cl-info" key={i}>{t}</div>)}
 
-          {/* Meals: swap front-and-center so logging a different meal is one tap. */}
+          {/* Meals: search a food, set the amount, and log it — counts toward
+              your calories for the day (no free-text guessing). */}
           {parsed.kind === 'meal' && (
-            <div className="cl-swap">
-              <div className="cl-swap-h">🍽️ Ate something different?</div>
-              <textarea className="cl-swap-ta" rows={2}
-                placeholder="Log what you actually ate — e.g. Cobb salad + extra chicken…"
-                value={sub.note || ''}
-                onChange={(e) => setV((s) => ({ ...s, __sub__: { ...sub, note: e.target.value } }))}
-                onBlur={(e) => put('__sub__', { note: e.target.value })} />
-              <div className="cl-swap-hint">Logged as today's swap — the planned items below stay as reference.</div>
+            <FoodSearch onLog={(food) =>
+              addFoodLog(food, logDate, 'extra', user, event.id)} />
+          )}
+          {parsed.kind === 'meal' && mealSubs.length > 0 && (
+            <div className="cl-logged">
+              <div className="cl-logged-h">What you ate (instead of the plan)</div>
+              {mealSubs.map((f) => (
+                <div className="cl-logged-row" key={f.id}>
+                  <span className="cl-logged-name">{f.name}</span>
+                  <span className="cl-logged-k">{f.kcal ? `${f.kcal} kcal` : 'not tracked'}</span>
+                  <button className="cl-logged-del" onClick={() => removeFoodLog(f.id)} title="Remove">×</button>
+                </div>
+              ))}
             </div>
           )}
 
