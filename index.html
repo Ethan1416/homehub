@@ -19,7 +19,7 @@
   <body>
     <!-- Fixed black bar covers the iOS status bar (time/battery/signal) so white
          content never bleeds behind it when scrolling. Height = safe-area-inset-top. -->
-    <div style="position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#0d0f1a;z-index:99999;pointer-events:none"></div>
+    <div id="sb-cover" style="position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,54px);background:#0d0f1a;z-index:99999;pointer-events:none"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

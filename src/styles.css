@@ -81,7 +81,7 @@ body {
 .ph {
   max-width: 560px; margin: 0 auto; min-height: 100%;
   background: var(--bg); color: var(--text);
-  padding: calc(env(safe-area-inset-top, 0px) + 22px) 22px 0;
+  padding: calc(env(safe-area-inset-top, 54px) + 22px) 22px 0;
   position: relative;
 }
 .tab-content { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
