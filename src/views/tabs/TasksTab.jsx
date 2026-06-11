@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
 import { MACHINES, gymVisibleTo } from '../../lib/constants.js'
 import { fmtTime, sameDay, addDays, occursOn, minutesOfDay, ymd } from '../../lib/date.js'
-import { parseEvent, completion, sessionSummary, EFFORT_LABELS } from '../../lib/checklist.js'
+import { parseEvent, completion, sessionSummary, EFFORT_LABELS, cellState } from '../../lib/checklist.js'
 import {
   useProgress, useGymOverrides,
   useDaysOff, setDayOff, clearDayOff,
-  useCarryover, addCarryover, setCarryoverDone, deleteCarryover
+  useCarryover, addCarryover, setCarryoverDone, deleteCarryover,
+  useFoodLog
 } from '../../lib/useData.js'
+import Onboarding from '../../components/Onboarding.jsx'
 
 const PASTELS = [
   { bg: '#eef1fe', bar: '#5b6ef5' },
@@ -29,15 +31,22 @@ const weekOf = (d) => {
 const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 export default function TasksTab({
-  events, statuses, streak, user,
+  events, statuses, streak, user, displayName: displayNameProp, eventsLoading,
   selected, setSelected, weekBase, setWeekBase,
   filter, setFilter, openChecklist, openGymPicker, switchUser
 }) {
   const { byEvent } = useProgress(ymd(selected), user)
+  const { rows: dayFoods } = useFoodLog(ymd(selected), user)
+  // Substitute foods grouped by the meal they replace.
+  const foodsByEvent = useMemo(() => {
+    const m = {}
+    for (const f of dayFoods) if (f.event_id) (m[f.event_id] ||= []).push(f)
+    return m
+  }, [dayFoods])
   const overrides = useGymOverrides(user)
   const daysOff = useDaysOff(user)
   const carryover = useCarryover(user)
-  const displayName = user === 'justin' ? 'Justin' : 'Ethan'
+  const displayName = displayNameProp || (user === 'justin' ? 'Justin' : 'Ethan')
 
   const selKey = ymd(selected)
   const wholeOff = daysOff.has(`${selKey}|*`)
@@ -48,7 +57,6 @@ export default function TasksTab({
     daysOff.has(`${selKey}|${id}`) ? clearDayOff(selKey, id, user) : setDayOff(selKey, id, user)
   const shortTitle = (t) => t.replace(/^[^\w]+/, '').trim()
   const [noteDraft, setNoteDraft] = useState('')
-  const [collapsed, setCollapsed] = useState(false)
   const openCarry = carryover.filter((c) => !c.done)
 
   const dayEvents = useMemo(() => {
@@ -85,20 +93,36 @@ export default function TasksTab({
   const shown = filter ? withStatus.filter((x) => x.status === filter) : withStatus
   const week = weekOf(weekBase)
   const remaining = counts.todo + counts.progress
-  // When collapsed, keep the next actionable task in view (fall back to first).
-  const nextTask = shown.find((x) => x.status === 'todo' || x.status === 'progress') || shown[0]
 
   const renderRow = (x, i) => {
     const { e, done, total, pct, status, off } = x
     const p = PASTELS[i % PASTELS.length]
-    const desc = (e.notes || '').split('\n').map((s) => s.trim()).filter(Boolean)[0] || ''
+    // Meal subheader = what you actually ate: planned items you didn't skip, plus
+    // anything you logged. Skip the eggs/veg you didn't eat → they drop off here.
+    // The title's food summary ("Chicken + eggs") goes stale when you skip items,
+    // so for meals we keep only the slot label ("🥩 Post-workout") — the subheader
+    // below carries the real foods.
+    const titleText = (e.type === 'meal' && e.title.includes(':'))
+      ? e.title.slice(0, e.title.indexOf(':')).trim()
+      : e.title
+    let desc
+    if (e.type === 'meal') {
+      const prog = byEvent[e.id] || {}
+      const kept = parseEvent(e).groups
+        .filter((g) => cellState(prog[g.key]) !== 'skipped')
+        .map((g) => g.label)
+      const eaten = [...kept, ...(foodsByEvent[e.id] || []).map((f) => f.name)]
+      desc = eaten.length ? eaten.join(', ') : 'Nothing eaten yet'
+    } else {
+      desc = (e.notes || '').split('\n').map((s) => s.trim()).filter(Boolean)[0] || ''
+    }
     return (
       <div className={`tl-row ${off ? 'rest' : ''}`} key={e.id}>
         <span className="tl-dot" style={{ borderColor: off ? '#9aa0b5' : p.bar }} />
         <button className="task" style={{ background: off ? '#f1f2f6' : p.bg }}
           onClick={() => openChecklist(e)}>
           <div className="task-top">
-            <b>{e.title}</b>
+            <b>{titleText}</b>
             <span className="task-time" style={{ color: off ? '#9aa0b5' : p.bar }}>
               {off ? '🛌 Rest' : e.all_day ? 'All day' : fmtTime(e.starts_at)}
             </span>
@@ -111,6 +135,10 @@ export default function TasksTab({
             </div>
           )}
         </button>
+        <button className={`task-skip ${off ? 'on' : ''}`}
+          onClick={() => toggleTaskRest(e.id)}>
+          {off ? '↶' : 'Skip'}
+        </button>
       </div>
     )
   }
@@ -120,6 +148,12 @@ export default function TasksTab({
     const working = s?.state === 'working' && !isStale(s)
     return { mk, label: m.label, working, has: !!s }
   })
+
+  // Brand-new user with no workout of their own → onboarding (wait for load
+  // so returning users don't see an onboarding flash).
+  if (!eventsLoading && !events.some((e) => e.type === 'gym' && e.owner === user)) {
+    return <Onboarding user={user} name={displayName} />
+  }
 
   return (
     <>
@@ -133,7 +167,7 @@ export default function TasksTab({
           </div>
           <div className="ph-top-side">
             <button className="user-pill" onClick={switchUser}
-              title="Switch user">{user === 'justin' ? 'J' : 'E'}</button>
+              title="Sign out">{(displayName || 'U').charAt(0).toUpperCase()}</button>
             <div className="streak-chip" title={`${streak}-day streak`}>
               🔥<b>{streak}</b>
             </div>
@@ -182,10 +216,7 @@ export default function TasksTab({
       </div>
 
       <div className="ph-sec">
-        <button className="sec-collapse" onClick={() => setCollapsed((c) => !c)}>
-          <h3>{sameDay(selected, new Date()) ? "Today's Tasks" : selected.toLocaleDateString([], { weekday: 'long' }) + "'s Tasks"}</h3>
-          <span className="sec-chev">{collapsed ? '▸' : '▾'}</span>
-        </button>
+        <h3>{sameDay(selected, new Date()) ? "Today's Tasks" : selected.toLocaleDateString([], { weekday: 'long' }) + "'s Tasks"}</h3>
         {filter && <button className="see-all" onClick={() => setFilter(null)}>Show all</button>}
       </div>
 
@@ -204,41 +235,7 @@ export default function TasksTab({
 
       <div className="timeline">
         {shown.length === 0 && <div className="empty">Nothing here 🎉</div>}
-        {collapsed
-          ? (nextTask ? renderRow(nextTask, shown.indexOf(nextTask)) : null)
-          : shown.map((x, i) => renderRow(x, i))}
-      </div>
-
-      {shown.length > 1 && (
-        <button className="tl-expand" onClick={() => setCollapsed((c) => !c)}>
-          {collapsed
-            ? `▾  Show ${shown.length - 1} more task${shown.length - 1 === 1 ? '' : 's'}`
-            : '▴  Collapse tasks'}
-        </button>
-      )}
-
-      {/* Quick actions — rest controls live here, not buried inside an exercise */}
-      <div className="quick">
-        <div className="quick-h">Quick actions</div>
-        <button className={`quick-restday ${wholeOff ? 'on' : ''}`} onClick={toggleRestDay}>
-          {wholeOff ? '↶ Undo — whole day off' : '🛌 Take the whole day off'}
-        </button>
-        {!wholeOff && withStatus.length > 0 && (
-          <>
-            <div className="quick-sub">Or rest just one:</div>
-            <div className="quick-tasks">
-              {withStatus.map(({ e }) => {
-                const off = daysOff.has(`${selKey}|${e.id}`)
-                return (
-                  <button key={e.id} className={`quick-chip ${off ? 'on' : ''}`}
-                    onClick={() => toggleTaskRest(e.id)}>
-                    {off ? '🛌 ' : ''}{shortTitle(e.title)}
-                  </button>
-                )
-              })}
-            </div>
-          </>
-        )}
+        {shown.map((x, i) => renderRow(x, i))}
       </div>
     </>
   )
