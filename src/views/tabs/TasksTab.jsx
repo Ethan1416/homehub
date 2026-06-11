@@ -226,7 +226,7 @@ export default function TasksTab({
         </div>
       )}
 
-      {!collapsed && !wholeOff && !withStatus.some((x) => x.e.type === 'gym') && (
+      {!wholeOff && !withStatus.some((x) => x.e.type === 'gym') && (
         <button className="rest-add" onClick={() => openGymPicker(selected)}>
           <span>💪 Rest day —</span>
           <b>Add a gym session?</b>
