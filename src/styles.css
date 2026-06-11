@@ -71,6 +71,18 @@ body {
 }
 ::-webkit-scrollbar { width: 0; height: 0; }
 
+/* Fixed black bar covers the status-bar row (time/signal/battery) so white
+   content never bleeds behind those white icons when scrolling. */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background: #0d0f1a;
+  z-index: 9999;
+  pointer-events: none;
+}
+
 /* ===================== Phone (light, timeline) ===================== */
 .ph, .pinwrap, .ugwrap {
   --bg: #f3f4fb; --panel: #ffffff; --panel-2: #eef0f7; --line: #e7e9f1;
