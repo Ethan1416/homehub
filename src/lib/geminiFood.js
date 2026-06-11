@@ -1,5 +1,8 @@
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY
-const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`
+const LS_KEY = 'hh_gemini_key'
+const ENDPOINT_BASE = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='
+
+export function getGeminiKey() { return localStorage.getItem(LS_KEY) || '' }
+export function setGeminiKey(k) { localStorage.setItem(LS_KEY, k.trim()) }
 
 async function toBase64(file, maxPx = 900) {
   return new Promise((resolve, reject) => {
@@ -22,9 +25,10 @@ async function toBase64(file, maxPx = 900) {
 }
 
 export async function analyzeFood(file) {
-  if (!API_KEY) throw new Error('VITE_GEMINI_API_KEY not set')
+  const key = getGeminiKey()
+  if (!key) throw new Error('NO_KEY')
   const base64 = await toBase64(file)
-  const res = await fetch(ENDPOINT, {
+  const res = await fetch(ENDPOINT_BASE + key, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { searchFoods, foodKcal, foodLabel, UNITS } from '../lib/foods.js'
-import { analyzeFood } from '../lib/geminiFood.js'
+import { analyzeFood, getGeminiKey, setGeminiKey } from '../lib/geminiFood.js'
 
 // Type to find a food → pick it → log it.
 // Also supports camera: take a photo → AI estimates name/kcal/macros → confirm.
@@ -17,11 +17,13 @@ export default function FoodSearch({ onLog }) {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState(null)
   const [aiDraft, setAiDraft] = useState(null) // editable estimate
+  const [keyPrompt, setKeyPrompt] = useState(false)
+  const [keyDraft, setKeyDraft] = useState('')
 
   const results = sel ? [] : searchFoods(q)
 
   function choose(f) { setSel(f); setQty(String(f.def ?? 1)); setUnit('g') }
-  function reset() { setSel(null); setQ(''); setQty(''); setAiDraft(null); setAiError(null) }
+  function reset() { setSel(null); setQ(''); setQty(''); setAiDraft(null); setAiError(null); setKeyPrompt(false) }
 
   function add(tracked) {
     const kcal = tracked ? foodKcal(sel, qty, unit) : 0
@@ -51,7 +53,8 @@ export default function FoodSearch({ onLog }) {
         fat: result.fat ?? 0,
       })
     } catch (err) {
-      setAiError(err.message || 'Could not analyse photo — try again')
+      if (err.message === 'NO_KEY') { setKeyPrompt(true) }
+      else setAiError(err.message || 'Could not analyse photo — try again')
     } finally {
       setAiLoading(false)
     }
@@ -77,6 +80,26 @@ export default function FoodSearch({ onLog }) {
       {/* Camera input — hidden, triggered by button */}
       <input ref={camRef} type="file" accept="image/*" capture="environment"
         style={{ display: 'none' }} onChange={handleCamera} />
+
+      {/* One-time Gemini key setup */}
+      {keyPrompt && (
+        <div className="fs-ai-card">
+          <div className="fs-ai-title">Paste your Gemini API key once</div>
+          <p className="fs-ai-key-hint">Get a free key at <b>aistudio.google.com</b> → Get API key</p>
+          <input className="fs-ai-name-input" value={keyDraft}
+            onChange={e => setKeyDraft(e.target.value)}
+            placeholder="AQ.Ab8..." autoFocus />
+          <div className="fs-actions">
+            <button className="fs-cancel" onClick={() => setKeyPrompt(false)}>Cancel</button>
+            <button className="fs-add" disabled={!keyDraft.trim()} onClick={() => {
+              setGeminiKey(keyDraft)
+              setKeyPrompt(false)
+              setKeyDraft('')
+              camRef.current.click()
+            }}>Save &amp; open camera</button>
+          </div>
+        </div>
+      )}
 
       {/* AI loading */}
       {aiLoading && (
@@ -141,7 +164,7 @@ export default function FoodSearch({ onLog }) {
                 <input className="fs-input" value={q} autoFocus={false}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Search — chicken, beef, eggs, rice…" />
-                <button className="fs-cam-btn" onClick={() => camRef.current.click()}
+                <button className="fs-cam-btn" onClick={() => getGeminiKey() ? camRef.current.click() : setKeyPrompt(true)}
                   title="Take a photo — AI will estimate calories">
                   📷
                 </button>
