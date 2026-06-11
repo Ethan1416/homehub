@@ -540,7 +540,7 @@ body {
 
 .timeline { position: relative; }
 .tl-row { position: relative; display: grid; grid-template-columns: 16px 1fr auto;
-  gap: 14px; padding-bottom: 14px; align-items: center; }
+  gap: 14px; padding-bottom: 14px; align-items: stretch; }
 .tl-row::before { content: ""; position: absolute; left: 7px; top: 10px;
   bottom: -4px; width: 2px; background: var(--line); }
 .tl-row:last-child::before { display: none; }
@@ -1897,9 +1897,10 @@ html.is-embedded-app .sheet.focused .fc-head { padding-top: calc(var(--hh-safe-t
 .onb-signin b { color: var(--accent); }
 
 /* #1 one-tap skip on the to-do row */
-.task-skip { padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px;
+.task-skip { padding: 0 10px; border: 1px solid var(--line); border-radius: 10px;
   background: var(--panel-2); font-size: 12px; font-weight: 700; color: var(--muted);
-  cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; }
+  cursor: pointer; white-space: nowrap; transition: background .15s, color .15s;
+  display: flex; align-items: center; justify-content: center; }
 .task-skip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 
 /* #6 muscle-group "train next" recommendation card */
