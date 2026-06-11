@@ -103,7 +103,34 @@ body {
 .tab-btn.on .tb-ic svg { opacity: 1; }
 .cal-hint { font-size: 12px; color: var(--muted); text-align: center;
   margin-top: 18px; }
-.ora-hdr { margin-bottom: 14px; }
+.ora-hdr { margin-bottom: 14px; position: relative; }
+.cal-gear { position: absolute; top: 0; right: 0; background: transparent; border: none;
+  font-size: 18px; color: var(--muted); cursor: pointer; padding: 2px; line-height: 1; }
+.cal-gear:active { opacity: .6; }
+
+/* Calorie goal modal */
+.cal-goal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200;
+  display: flex; align-items: center; justify-content: center; }
+.cal-goal-modal { background: var(--panel); border-radius: 20px; padding: 22px 20px 20px;
+  width: min(340px, 90vw); box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.cal-goal-title { font-size: 16px; font-weight: 800; margin-bottom: 16px; }
+.cal-goal-presets { display: flex; gap: 8px; margin-bottom: 18px; }
+.cal-goal-preset { flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 3px; padding: 10px 6px; border: 1.5px solid var(--line); border-radius: 12px;
+  background: var(--panel-2); cursor: pointer; }
+.cal-goal-preset b { font-size: 13px; font-weight: 800; color: var(--text); }
+.cal-goal-preset span { font-size: 11px; color: var(--muted); }
+.cal-goal-preset.on { border-color: var(--accent); background: rgba(91,110,245,.08); }
+.cal-goal-preset.on b { color: var(--accent); }
+.cal-goal-manual label { font-size: 12px; font-weight: 700; color: var(--muted);
+  display: block; margin-bottom: 6px; }
+.cal-goal-row { display: flex; align-items: center; gap: 8px; }
+.cal-goal-row input { flex: 1; background: var(--panel-2); border: 1px solid var(--line);
+  border-radius: 10px; padding: 9px 12px; font-size: 16px; font-weight: 700; color: var(--text); }
+.cal-goal-row span { font-size: 13px; color: var(--muted); }
+.cal-goal-done { width: 100%; margin-top: 16px; background: var(--accent); color: #fff;
+  border: none; border-radius: 12px; padding: 12px; font-size: 15px; font-weight: 800;
+  cursor: pointer; }
 .ms-wrap { background: var(--panel); border-radius: 18px; padding: 16px 18px 14px;
   margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--line); }
 .ms-h small { display: block; font-size: 11px; color: var(--muted);

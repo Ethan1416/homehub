@@ -12,11 +12,14 @@
     <!-- "default" keeps a solid status bar with legible time/battery and reserves
          its space. "black-translucent" drew the app under white status-bar glyphs
          on the light theme, making the clock/battery disappear. -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="StartGym" />
     <title>StartGym</title>
   </head>
   <body>
+    <!-- Fixed black bar covers the iOS status bar (time/battery/signal) so white
+         content never bleeds behind it when scrolling. Height = safe-area-inset-top. -->
+    <div style="position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:#0d0f1a;z-index:99999;pointer-events:none"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

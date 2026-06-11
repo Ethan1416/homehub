@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { isWidgetWorkoutLaunch } from '../lib/nativeBridge.js'
 import { useEvents, useClaudeStatus, useStreak } from '../lib/useData.js'
 import { ymd } from '../lib/date.js'
 import { isConfigured } from '../supabaseClient.js'
@@ -7,41 +8,61 @@ import ChecklistSheet from '../components/ChecklistSheet.jsx'
 import FocusedChecklistSheet from '../components/FocusedChecklistSheet.jsx'
 import RoutinePicker from '../components/RoutinePicker.jsx'
 import CustomWorkoutBuilder from '../components/CustomWorkoutBuilder.jsx'
-import { useCurrentUser, setUser as setCurrentUser } from '../components/UserGate.jsx'
+import { useCurrentUser, useDisplayName } from '../components/UserGate.jsx'
+import ProfileSheet from '../components/ProfileSheet.jsx'
 import TasksTab from './tabs/TasksTab.jsx'
 import CalendarTab from './tabs/CalendarTab.jsx'
 import WorkoutTab from './tabs/WorkoutTab.jsx'
-import ClaudeTab from './tabs/ClaudeTab.jsx'
+import CaloriesTab from './tabs/CaloriesTab.jsx'
 import OuraTab from './tabs/OuraTab.jsx'
-import { IconTasks, IconCalendar, IconWorkout, IconClaude, IconOura } from '../components/Icons.jsx'
+import { IconTasks, IconCalendar, IconWorkout, IconCalories, IconOura } from '../components/Icons.jsx'
 
-// Users allowed to see the Claude admin tab (live Claude Code status on
-// Ethan's Mac + Justin's PC). Non-admin users never see it — safe to ship
-// in the App Store because the hidden tab has no user-facing functionality
-// and no monetization-bypass concerns.
-const ADMIN_USERS = ['ethan', 'justin']
 const ALL_TABS = [
   { k: 'tasks', Icon: IconTasks, label: 'Tasks' },
-  { k: 'calendar', Icon: IconCalendar, label: 'Calendar' },
   { k: 'workout', Icon: IconWorkout, label: 'Workout' },
-  { k: 'claude', Icon: IconClaude, label: 'Claude', adminOnly: true },
-  { k: 'oura', Icon: IconOura, label: 'Vitals' }
+  { k: 'calories', Icon: IconCalories, label: 'Calories' },
+  { k: 'oura', Icon: IconOura, label: 'Vitals' },
+  { k: 'calendar', Icon: IconCalendar, label: 'Calendar' }
 ]
 
 export default function PhoneView() {
   const user = useCurrentUser() || 'ethan'
-  const { events } = useEvents()
+  const displayName = useDisplayName()
+  const { events, loading: eventsLoading } = useEvents()
   const { statuses } = useClaudeStatus()
   const streak = useStreak(events, user)
   const [selected, setSelected] = useState(new Date())
   const [weekBase, setWeekBase] = useState(new Date())
   const [filter, setFilter] = useState(null)
   const [tab, setTab] = useState('tasks')
-  // Filter admin-only tabs by current user.
-  const TABS = ALL_TABS.filter((t) => !t.adminOnly || ADMIN_USERS.includes(user))
+  const TABS = ALL_TABS
   const [workoutFocus, setWorkoutFocus] = useState(null) // event_id to filter Workout tab to
   const [workoutNav, setWorkoutNav] = useState(null)     // {ex, nonce} — open this exercise on Workout tab
   const [modal, setModal] = useState(null)
+
+  // Launched from the widget's deep link → reopen the last workout spot
+  // (breadcrumb written by FocusedChecklistSheet to localStorage).
+  const widgetHandled = useRef(false)
+  const [widgetNonce, setWidgetNonce] = useState(0)
+  // Bundled app: the shell calls __hhOpenWorkout() (from the widget deep link)
+  // after load, since there's no ?widget= query string to read.
+  useEffect(() => {
+    window.__hhOpenWorkout = () => { window.__hhWidgetWorkout = true; setWidgetNonce((n) => n + 1) }
+    return () => { delete window.__hhOpenWorkout }
+  }, [])
+  useEffect(() => {
+    if (widgetHandled.current || !isWidgetWorkoutLaunch() || !events.length) return
+    try {
+      const spot = JSON.parse(localStorage.getItem('hh_active_spot') || 'null')
+      const ev = spot?.eventId && events.find((e) => e.id === spot.eventId)
+      if (ev) {
+        widgetHandled.current = true
+        if (spot.logDate) setSelected(new Date(spot.logDate + 'T12:00'))
+        setTab('workout')
+        setModal({ checklist: ev })
+      }
+    } catch { /* ignore */ }
+  }, [events, widgetNonce])
 
   return (
     <div className="ph">
@@ -51,12 +72,13 @@ export default function PhoneView() {
         {tab === 'tasks' && (
           <TasksTab
             events={events} statuses={statuses} streak={streak} user={user}
+            displayName={displayName} eventsLoading={eventsLoading}
             selected={selected} setSelected={setSelected}
             weekBase={weekBase} setWeekBase={setWeekBase}
             filter={filter} setFilter={setFilter}
             openChecklist={(e) => setModal({ checklist: e })}
             openGymPicker={(day) => setModal({ gymPicker: day })}
-            switchUser={() => setCurrentUser(null)}
+            switchUser={() => setModal({ profile: true })}
           />
         )}
         {tab === 'calendar' && (
@@ -71,7 +93,7 @@ export default function PhoneView() {
             openChecklist={(e) => setModal({ checklist: e })}
             switchToTasks={() => setTab('tasks')} />
         )}
-        {tab === 'claude' && <ClaudeTab />}
+        {tab === 'calories' && <CaloriesTab events={events} user={user} />}
         {tab === 'oura' && <OuraTab user={user} />}
       </div>
 
@@ -117,9 +139,10 @@ export default function PhoneView() {
           onClose={() => setModal(null)} />
       )}
       {(modal?.new || modal?.event) && (
-        <EventModal event={modal.event} defaultDate={new Date(selected)}
-          onClose={() => setModal(null)} />
+        <EventModal event={modal.event} events={events} defaultDate={new Date(selected)}
+          user={user} onClose={() => setModal(null)} />
       )}
+      {modal?.profile && <ProfileSheet onClose={() => setModal(null)} />}
     </div>
   )
 }
