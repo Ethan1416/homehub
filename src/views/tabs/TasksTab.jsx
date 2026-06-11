@@ -137,7 +137,7 @@ export default function TasksTab({
         </button>
         <button className={`task-skip ${off ? 'on' : ''}`}
           onClick={() => toggleTaskRest(e.id)}>
-          {off ? '↶' : 'Skip'}
+          {off ? 'Undo' : 'Skip'}
         </button>
       </div>
     )

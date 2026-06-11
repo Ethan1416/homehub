@@ -1042,16 +1042,16 @@ button { font: inherit; cursor: pointer; border: none; }
 .cl-ex-done.all-skipped .cs-tick { color: var(--muted); }
 
 /* Meal/simple item row with adjacent skip button */
-.cl-item-row { display: flex; align-items: stretch; gap: 6px;
+.cl-item-row { display: flex; align-items: stretch; gap: 8px;
   margin-bottom: 6px; }
-.cl-item-row .cl-item { flex: 1; margin-bottom: 0; }
+.cl-item-row .cl-item { flex: 1; margin-bottom: 0; min-width: 0; }
 .cl-item-row.state-skipped .cl-item { opacity: .55; text-decoration: line-through; }
-.cl-skip-btn { width: 36px; flex-shrink: 0;
+.cl-skip-btn { width: 52px; flex-shrink: 0;
   background: transparent; border: 1px dashed var(--line);
-  color: var(--muted); font-size: 16px; font-weight: 700;
-  border-radius: 10px; }
+  color: var(--muted); font-size: 12px; font-weight: 700;
+  border-radius: 10px; letter-spacing: .2px; }
 .cl-skip-btn.on { border-style: solid; background: rgba(150,155,176,.15);
-  color: var(--text); }
+  color: var(--accent); border-color: var(--accent); }
 
 /* one note per exercise (replaces per-set note) */
 .cl-ex-note { width: 100%; margin-top: 8px;

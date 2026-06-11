@@ -328,9 +328,8 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
                     <span>{g.label}</span>
                   </button>
                   <button className={`cl-skip-btn ${st === 'skipped' ? 'on' : ''}`}
-                    onClick={() => toggleSkip(g.key)}
-                    title={st === 'skipped' ? 'Un-skip' : 'Skip'}>
-                    {st === 'skipped' ? '↶' : '↷'}
+                    onClick={() => toggleSkip(g.key)}>
+                    {st === 'skipped' ? 'Undo' : 'Skip'}
                   </button>
                 </div>
               )
@@ -434,7 +433,7 @@ export default function ChecklistSheet({ event, day, user = 'ethan', onClose, on
                               }
                             }}
                             title={c.skipped ? 'Un-skip' : 'Skip this set'}>
-                            {c.skipped ? '↶' : '↷'}
+                            {c.skipped ? 'Undo' : 'Skip'}
                           </button>
                           {st !== 'open' && setExpanded[k] && (
                             <button className="cs-recollapse"
