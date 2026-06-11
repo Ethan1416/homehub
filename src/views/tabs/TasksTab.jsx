@@ -124,7 +124,7 @@ export default function TasksTab({
           <div className="task-top">
             <b>{titleText}</b>
             <span className="task-time" style={{ color: off ? '#9aa0b5' : p.bar }}>
-              {off ? '🛌 Rest' : e.all_day ? 'All day' : fmtTime(e.starts_at)}
+              {off ? 'Skipped' : e.all_day ? 'All day' : fmtTime(e.starts_at)}
             </span>
           </div>
           {desc && <p className="task-desc">{desc}</p>}

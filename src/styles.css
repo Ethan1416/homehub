@@ -1242,7 +1242,8 @@ button { font: inherit; cursor: pointer; border: none; }
   border-radius: 14px; padding: 12px 14px; font-size: 13px; color: var(--text);
   margin-bottom: 10px; }
 .rest-banner b { font-weight: 800; }
-.tl-row.rest .task { opacity: .72; }
+.tl-row.rest .task { opacity: .45; filter: grayscale(.4); }
+.tl-row.rest .task b { text-decoration: line-through; }
 
 /* ── #7 carry-over notes (tasks) ── */
 .carry { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
@@ -1898,8 +1899,8 @@ html.is-embedded-app .sheet.focused .fc-head { padding-top: calc(var(--hh-safe-t
 /* #1 one-tap skip on the to-do row */
 .task-skip { padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px;
   background: var(--panel-2); font-size: 12px; font-weight: 700; color: var(--muted);
-  cursor: pointer; white-space: nowrap; }
-.task-skip.on { background: #eceef4; color: var(--accent); border-color: var(--accent); }
+  cursor: pointer; white-space: nowrap; transition: background .15s, color .15s; }
+.task-skip.on { background: var(--accent); color: #fff; border-color: var(--accent); }
 
 /* #6 muscle-group "train next" recommendation card */
 .rec-card { margin: 0 0 14px; padding: 12px 14px; border-radius: 14px;
